@@ -167,16 +167,6 @@ Metricas_Boti_Mensual/
     └── README.md
 ```
 
-## 🔧 Limpieza de Archivos Locales (Opcional)
-
-Si actualizaste desde una versión anterior que tenía `config_fechas.txt` en cada subcarpeta, podés limpiar los archivos locales antiguos ejecutando:
-
-```bash
-python cleanup_local_configs.py
-```
-
-Esto eliminará los archivos locales obsoletos, ya que ahora todos los scripts usan el config centralizado.
-
 ## 📊 Salida
 
 Cada módulo genera:
@@ -240,5 +230,3 @@ Este es un proyecto interno del GCBA. Para contribuir:
 Proyecto del Gobierno de la Ciudad de Buenos Aires (GCBA).
 
 ---
-
-**Gobierno de la Ciudad de Buenos Aires - Área de Data Analytics**
