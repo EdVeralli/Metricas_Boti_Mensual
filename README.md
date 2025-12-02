@@ -16,6 +16,35 @@ El proyecto está compuesto por 5 módulos independientes que extraen diferentes
 
 💡 **Ayuda Rápida:** Ejecutá `python ayuda.py` para ver todos los comandos y el workflow completo.
 
+## 🚀 Ejecución Rápida (Recomendado)
+
+### Script Maestro - Ejecutar Todo de Una Vez
+
+El **script maestro** ejecuta automáticamente todos los módulos y genera el dashboard consolidado:
+
+```bash
+# 1. Autenticarse en AWS
+aws-azure-login --profile default --mode=gui
+
+# 2. Configurar fechas (si es necesario)
+nano config_fechas.txt
+
+# 3. Ejecutar todo automáticamente
+python run_all.py
+
+# 4. Consolidar en un único Excel (se ejecuta después del maestro)
+python consolidar_excel.py
+```
+
+**Ventajas:**
+- ✅ Ejecuta los 5 módulos secuencialmente
+- ✅ Verifica credenciales AWS antes de empezar
+- ✅ Muestra progreso en tiempo real
+- ✅ Genera resumen de ejecución
+- ✅ El consolidador crea un dashboard completo en la raíz
+
+**Resultado:** Archivo `Dashboard_Boti_Consolidado_YYYYMMDD_HHMMSS.xlsx` en la raíz del proyecto con todas las métricas unificadas.
+
 ## ⚙️ Configuración Centralizada
 
 **IMPORTANTE:** Todos los módulos utilizan un **archivo de configuración centralizado** ubicado en la raíz del proyecto:
@@ -80,7 +109,21 @@ nano config_fechas.txt
 
 ### 2. Ejecutar Scripts
 
-Una vez autenticado en AWS, ejecutá los módulos que necesites.
+**Opción A: Automática (Recomendado) 🚀**
+
+Ejecutar todos los módulos de una vez:
+```bash
+python run_all.py
+```
+
+Luego consolidar todos los Excel:
+```bash
+python consolidar_excel.py
+```
+
+**Opción B: Manual (Módulo por Módulo)**
+
+Si preferís ejecutar módulos específicos:
 
 ### 3. Ejecutar los Scripts
 
@@ -137,7 +180,10 @@ Metricas_Boti_Mensual/
 ├── README.md                                  # Documentación principal
 ├── CAMBIOS.md                                 # Log de cambios y mejoras
 ├── ayuda.py                                   # 💡 Script de ayuda rápida (python ayuda.py)
+├── run_all.py                                 # 🚀 Script maestro - ejecuta todos los módulos
+├── consolidar_excel.py                        # 📊 Consolidador - unifica todos los Excel
 ├── cleanup_local_configs.py                   # Script para limpiar configs locales antiguos
+├── Dashboard_Boti_Consolidado_*.xlsx          # 📈 Dashboard consolidado (generado automáticamente)
 │
 ├── Metricas_Boti_Conversaciones_Usuarios/
 │   ├── Usuarios_Conversaciones.py
@@ -230,3 +276,5 @@ Este es un proyecto interno del GCBA. Para contribuir:
 Proyecto del Gobierno de la Ciudad de Buenos Aires (GCBA).
 
 ---
+
+**Gobierno de la Ciudad de Buenos Aires - Área de Data Analytics**
