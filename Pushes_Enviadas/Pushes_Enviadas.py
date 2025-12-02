@@ -34,7 +34,7 @@ CONFIG = {
     'workgroup': 'Production-caba-piba-athena-boti-group',
     'database': 'caba-piba-consume-zone-db',
     'output_folder': 'output',
-    'config_file': 'config_fechas.txt'
+    'config_file': '../config_fechas.txt'  # Config centralizado en raiz del proyecto
 }
 
 # ==================== FUNCIONES ====================
