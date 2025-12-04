@@ -1,0 +1,61 @@
+﻿rule_name,cant_sesiones
+CXF01CUX02 Muy conforme Estáticos,3065
+CXF01CUX00 Cierre Sin Sugerencia,18712
+CXF01CUX02 Muy inconforme Estáticos,1888
+CXF01CUX01 Muy inconforme Integraciones,1987
+CXF01CUX04 Inconforme CATs,127
+CXF01CUX02 Fácil Estáticos,2048
+CXF01CUX02 P4 Estáticos,9320
+CXF01CUX02 No sé Estáticos,1105
+CXF01CUX04 P1 CATs,2750
+CXF01CUX01 Sí Integraciones,19663
+CXF01CUX01 Muy fácil Integraciones,10575
+CXF01CUX02 P3 Estáticos,10867
+CXF01CUX04 Difícil CATs,153
+CXF01CUX03 P2 Pushes,64
+CXF01CUX02 P1 Estáticos,182179
+CXF01CUX01 Fácil Integraciones,4080
+CXF01CUX03 Muy inconforme Pushes,3
+CXF01CUX04 Muy fácil CATs,391
+CXF01CUX00 Cierre Con sugerencia,17691
+CXF01CUX01 Difícil Integraciones,1188
+CXF01CUX02 Muy difícil Estáticos,2788
+CXF01CUX04 P4 CATs,1216
+CXF01CUX01 No sé Integraciones ,1348
+CXF01CUX04 Fácil CATs,290
+CXF01CUX02 Inconforme Estáticos,1078
+CXF01CUX01 Conforme Integraciones,3870
+CXF01CUX00 Preapertura,311252
+CXF01CUX02 Más o menos Estáticos,1795
+CXF01CUX04 P2 CATs,1541
+CXF01CUX02 Conforme Estáticos,2184
+CXF01CUX03 Conforme Pushes,9
+CXF01CUX03 No Pushes,13
+CXF01CUX03 No avisos Pushes,11
+CXF01CUX01 No Integraciones,9242
+CXF01CUX01 Muy conforme Integraciones,9326
+CXF01CUX01 P1 Integraciones,129094
+CXF01CUX04 Sí CATs,985
+CXF01CUX04 P3 CATs,1342
+CXF01CUX02 P2 Estáticos,16470
+CXF01CUX02 Difícil Estáticos,1207
+CXF01CUX01 P4 Integraciones,17858
+CXF01CUX04 Ni fácil ni difícil CATs,200
+CXF01CUX01 Inconforme Integraciones,1327
+CXF01CUX03 Sí Pushes,52
+CXF01CUX04 Muy conforme CATs,678
+CXF01CUX02 Sí Estáticos,8131
+CXF01CUX01 Más o menos Integraciones,2373
+CXF01CUX01 P2 Integraciones,28905
+CXF01CUX03 Inconforme Pushes,2
+CXF01CUX04 Conforme CATs,226
+CXF01CUX03 P3 Pushes,32
+CXF01CUX01 P3 Integraciones,20564
+CXF01CUX04 Muy difícil CATs,183
+CXF01CUX02 Muy fácil Estáticos,3029
+CXF01CUX04 Muy inconforme CATs,217
+CXF01CUX02 No Estáticos,8341
+CXF01CUX03 Muy conforme Pushes,18
+CXF01CUX01 Muy difícil Integraciones,2348
+CXF01CUX04 No CATs,557
+CXF01CUX04 No sé CATs,96
