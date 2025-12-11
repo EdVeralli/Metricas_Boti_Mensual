@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'''
+"""
 Consolidador de Excel - Metricas_Boti_Mensual
 
 Consolida todos los reportes Excel parciales en un dashboard completo
@@ -14,7 +14,7 @@ Este script:
 
 Uso:
     python consolidar_excel.py
-'''
+"""
 import os
 import glob
 from datetime import datetime
@@ -25,7 +25,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 # ==================== FUNCIONES DE UTILIDAD ====================
 
 def get_month_name(mes):
-    '''Retorna el nombre del mes en español'''
+    """Retorna el nombre del mes en español"""
     meses = {
         1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
         5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
@@ -34,12 +34,12 @@ def get_month_name(mes):
     return meses.get(mes, f'mes{mes}')
 
 def leer_config_fechas(config_file='config_fechas.txt'):
-    '''
+    """
     Lee el archivo de configuración de fechas y retorna el periodo como string
     para usar en el nombre del archivo.
     
     Retorna: string con el periodo (ej: "octubre_2025" o "2025-10-01_al_2025-10-15")
-    '''
+    """
     try:
         if not os.path.exists(config_file):
             # Si no existe, usar fecha actual
@@ -109,7 +109,7 @@ MODULOS = {
     'sesiones_alcanzadas': {
         'carpeta': 'Sesiones_alcanzadas_pushes/output',
         'patron': 'sesiones_alcanzadas_pushes_*.xlsx',
-        'patron_alternativo': 'sesiones_alcanzadas*.xlsx',
+        'patron_alternativo': 'sesiones_alcanzadas*.xlsx',  # Más flexible
         'celdas': {
             'D5': 'Sesiones Alcanzadas'
         }
@@ -117,37 +117,10 @@ MODULOS = {
     'pushes_enviadas': {
         'carpeta': 'Pushes_Enviadas/output',
         'patron': 'pushes_enviadas_*.xlsx',
-        'patron_alternativo': '*pushes*.xlsx',
+        'patron_alternativo': '*pushes*.xlsx',  # Acepta "mensajes_pushes_enviados" también
         'celdas': {
             'D6': 'Pushes Enviadas'
         }
-    },
-    'feedback_efectividad': {
-        'carpeta': 'Feedback_Efectividad/output',
-        'patron': 'feedback_efectividad_*.xlsx',
-        'patron_alternativo': None,
-        'celdas': {
-            'D14': 'Efectividad'
-        },
-        'excluir_patron': '*_detalle_*'  # Excluir archivos _detalle
-    },
-    'feedback_ces': {
-        'carpeta': 'Feedback_CES/output',
-        'patron': 'feedback_ces_*.xlsx',
-        'patron_alternativo': None,
-        'celdas': {
-            'D15': 'CES'
-        },
-        'excluir_patron': '*_detalle_*'  # Excluir archivos _detalle
-    },
-    'feedback_csat': {
-        'carpeta': 'Feedback_CSAT/output',
-        'patron': 'feedback_csat_*.xlsx',
-        'patron_alternativo': None,
-        'celdas': {
-            'D16': 'CSAT'
-        },
-        'excluir_patron': '*_detalle_*'  # Excluir archivos _detalle
     },
     'disponibilidad': {
         'carpeta': 'Metricas_Boti_Disponibilidad/output',
@@ -183,13 +156,13 @@ ESTRUCTURA_DASHBOARD = [
 # ==================== FUNCIONES ====================
 
 def print_header(text):
-    '''Imprime un header formateado'''
+    """Imprime un header formateado"""
     print("\n" + "=" * 70)
     print(f"  {text}")
     print("=" * 70 + "\n")
 
-def buscar_excel_mas_reciente(carpeta, patron, patron_alternativo=None, excluir_patron=None):
-    '''Busca el Excel más reciente en una carpeta, excluyendo archivos no deseados'''
+def buscar_excel_mas_reciente(carpeta, patron, patron_alternativo=None):
+    """Busca el Excel más reciente en una carpeta"""
     ruta_completa = os.path.join(carpeta, patron)
     print(f"   🔍 Buscando: {ruta_completa}")
     
@@ -200,14 +173,6 @@ def buscar_excel_mas_reciente(carpeta, patron, patron_alternativo=None, excluir_
         ruta_alternativa = os.path.join(carpeta, patron_alternativo)
         print(f"   🔍 Probando patrón alternativo: {ruta_alternativa}")
         archivos = glob.glob(ruta_alternativa)
-    
-    # Excluir archivos según patrón de exclusión (ej: *_detalle_*)
-    if excluir_patron and archivos:
-        ruta_excluir = os.path.join(carpeta, excluir_patron)
-        archivos_excluir = set(glob.glob(ruta_excluir))
-        archivos = [f for f in archivos if f not in archivos_excluir]
-        if archivos_excluir:
-            print(f"   ⚠️  Excluidos {len(archivos_excluir)} archivos con patrón: {excluir_patron}")
     
     if not archivos:
         print(f"   ❌ No se encontraron archivos")
@@ -225,7 +190,7 @@ def buscar_excel_mas_reciente(carpeta, patron, patron_alternativo=None, excluir_
     return archivo_seleccionado
 
 def leer_valor_celda(archivo_excel, celda):
-    '''Lee el valor de una celda específica de un Excel'''
+    """Lee el valor de una celda específica de un Excel"""
     try:
         wb = openpyxl.load_workbook(archivo_excel, data_only=True)
         ws = wb.active
@@ -247,7 +212,7 @@ def leer_valor_celda(archivo_excel, celda):
         return None
 
 def extraer_metricas():
-    '''Extrae todas las métricas de los Excel parciales'''
+    """Extrae todas las métricas de los Excel parciales"""
     print_header("EXTRAYENDO MÉTRICAS DE LOS REPORTES")
     
     metricas = {}
@@ -259,13 +224,7 @@ def extraer_metricas():
         
         # Buscar Excel más reciente
         patron_alt = config.get('patron_alternativo')
-        excluir_patron = config.get('excluir_patron')
-        excel_path = buscar_excel_mas_reciente(
-            config['carpeta'], 
-            config['patron'], 
-            patron_alt,
-            excluir_patron
-        )
+        excel_path = buscar_excel_mas_reciente(config['carpeta'], config['patron'], patron_alt)
         
         if not excel_path:
             print(f"   ⚠️  No se encontró archivo Excel - marcando como '-'")
@@ -299,7 +258,7 @@ def extraer_metricas():
     return metricas, periodo_detectado
 
 def crear_estilos():
-    '''Crea los estilos para el Excel'''
+    """Crea los estilos para el Excel"""
     estilos = {
         'header': {
             'font': Font(name='Calibri', size=11, bold=True, color='FFFFFF'),
@@ -346,7 +305,7 @@ def crear_estilos():
     return estilos
 
 def crear_dashboard_consolidado(metricas, periodo):
-    '''Crea el Excel consolidado con todas las métricas'''
+    """Crea el Excel consolidado con todas las métricas"""
     print_header("CREANDO DASHBOARD CONSOLIDADO")
     
     # Crear workbook
@@ -411,16 +370,6 @@ def crear_dashboard_consolidado(metricas, periodo):
             ws[celda_valor].font = estilos['valor']['font']
             ws[celda_valor].alignment = estilos['valor']['alignment']
             ws[celda_valor].border = estilos['valor']['border']
-            
-            # Aplicar formato específico según la celda
-            if celda_valor == 'D14':  # Efectividad (porcentaje)
-                ws[celda_valor].number_format = '0.00%'
-            elif celda_valor == 'D15':  # CES (número decimal)
-                ws[celda_valor].number_format = '0.00'
-            elif celda_valor == 'D16':  # CSAT (porcentaje)
-                ws[celda_valor].number_format = '0.00%'
-            elif celda_valor == 'D17':  # Availability (porcentaje)
-                ws[celda_valor].number_format = '0.00%'
     
     # Ajustar altura de filas
     for fila in range(1, 18):
@@ -437,7 +386,7 @@ def crear_dashboard_consolidado(metricas, periodo):
     return nombre_archivo
 
 def mostrar_resumen(metricas, nombre_archivo):
-    '''Muestra un resumen de las métricas consolidadas'''
+    """Muestra un resumen de las métricas consolidadas"""
     print_header("RESUMEN DE MÉTRICAS CONSOLIDADAS")
     
     print("📊 Métricas extraídas:\n")
@@ -445,10 +394,7 @@ def mostrar_resumen(metricas, nombre_archivo):
     metricas_con_valor = 0
     metricas_sin_valor = 0
     
-    # Lista de todas las celdas de métricas
-    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D14', 'D15', 'D16', 'D17']
-    
-    for celda in celdas_metricas:
+    for celda in ['D2', 'D3', 'D4', 'D5', 'D6', 'D17']:
         valor = metricas.get(celda, '-')
         
         # Determinar el nombre de la métrica
@@ -458,9 +404,6 @@ def mostrar_resumen(metricas, nombre_archivo):
             'D4': 'Sesiones Abiertas',
             'D5': 'Sesiones Alcanzadas',
             'D6': 'Pushes Enviadas',
-            'D14': 'Efectividad',
-            'D15': 'CES',
-            'D16': 'CSAT',
             'D17': 'Availability'
         }
         
@@ -487,7 +430,7 @@ def mostrar_resumen(metricas, nombre_archivo):
         print("   Verificar que todos los scripts se ejecutaron correctamente.")
 
 def main():
-    '''Función principal'''
+    """Función principal"""
     print_header("CONSOLIDADOR DE EXCEL - Metricas_Boti_Mensual")
     
     print("Este script consolidará todos los reportes Excel en un dashboard único.")
@@ -496,9 +439,6 @@ def main():
     print("  • Sesiones Abiertas (D4)")
     print("  • Sesiones Alcanzadas (D5)")
     print("  • Pushes Enviadas (D6)")
-    print("  • Feedback - Efectividad (D14)")
-    print("  • Feedback - CES (D15)")
-    print("  • Feedback - CSAT (D16)")
     print("  • Disponibilidad WhatsApp (D17)")
     
     print("\n⚠️  El archivo consolidado se guardará en la raíz del proyecto")

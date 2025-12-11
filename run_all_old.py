@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'''
+"""
 Script Maestro - Ejecuta todos los módulos de Metricas_Boti_Mensual
 
 Este script:
@@ -12,7 +12,7 @@ Este script:
 
 Uso:
     python run_all.py
-'''
+"""
 import subprocess
 import sys
 import os
@@ -50,27 +50,6 @@ MODULOS = [
         'requiere_aws': True
     },
     {
-        'nombre': 'Feedback - Efectividad',
-        'carpeta': 'Feedback_Efectividad',
-        'script': 'Feedback_Efectividad.py',
-        'celdas': 'D14',
-        'requiere_aws': True
-    },
-    {
-        'nombre': 'Feedback - CES',
-        'carpeta': 'Feedback_CES',
-        'script': 'Feedback_CES.py',
-        'celdas': 'D15',
-        'requiere_aws': True
-    },
-    {
-        'nombre': 'Feedback - CSAT',
-        'carpeta': 'Feedback_CSAT',
-        'script': 'Feedback_CSAT.py',
-        'celdas': 'D16',
-        'requiere_aws': True
-    },
-    {
         'nombre': 'Disponibilidad WhatsApp',
         'carpeta': 'Metricas_Boti_Disponibilidad',
         'script': 'WhatsApp_Availability.py',
@@ -82,19 +61,19 @@ MODULOS = [
 # ==================== FUNCIONES ====================
 
 def print_header(text, char='='):
-    '''Imprime un header formateado'''
+    """Imprime un header formateado"""
     print("\n" + char * 70)
     print(f"  {text}")
     print(char * 70 + "\n")
 
 def print_section(text):
-    '''Imprime una sección'''
+    """Imprime una sección"""
     print(f"\n{'─' * 70}")
     print(f"  {text}")
     print('─' * 70)
 
 def verificar_aws_auth():
-    '''Verifica si hay credenciales AWS válidas'''
+    """Verifica si hay credenciales AWS válidas"""
     print("🔐 Verificando autenticación AWS...")
     try:
         result = subprocess.run(
@@ -121,7 +100,7 @@ def verificar_aws_auth():
         return False
 
 def verificar_config():
-    '''Verifica que exista el archivo de configuración'''
+    """Verifica que exista el archivo de configuración"""
     print("⚙️  Verificando configuración de fechas...")
     if os.path.exists('config_fechas.txt'):
         print("✅ Archivo config_fechas.txt encontrado")
@@ -131,7 +110,7 @@ def verificar_config():
         return False
 
 def leer_config_fechas():
-    '''Lee y muestra la configuración de fechas'''
+    """Lee y muestra la configuración de fechas"""
     try:
         with open('config_fechas.txt', 'r', encoding='utf-8') as f:
             mes = None
@@ -173,7 +152,7 @@ def leer_config_fechas():
         return False
 
 def ejecutar_modulo(modulo, numero, total):
-    '''Ejecuta un módulo específico'''
+    """Ejecuta un módulo específico"""
     print_section(f"[{numero}/{total}] {modulo['nombre']}")
     print(f"📊 Celdas Excel: {modulo['celdas']}")
     print(f"📂 Carpeta: {modulo['carpeta']}")
@@ -196,9 +175,7 @@ def ejecutar_modulo(modulo, numero, total):
         result = subprocess.run(
             [sys.executable, modulo['script']],
             capture_output=True,
-            text=True,
-            encoding='utf-8',
-            errors='replace'
+            text=True
         )
         
         # Volver al directorio raíz
@@ -239,7 +216,7 @@ def ejecutar_modulo(modulo, numero, total):
         }
 
 def mostrar_resumen(resultados, tiempo_total):
-    '''Muestra un resumen de la ejecución'''
+    """Muestra un resumen de la ejecución"""
     print_header("RESUMEN DE EJECUCIÓN", '=')
     
     exitosos = sum(1 for r in resultados if r['exitoso'])
@@ -271,7 +248,7 @@ def mostrar_resumen(resultados, tiempo_total):
         print("\n📝 Revisar los errores arriba y corregir antes de consolidar")
 
 def main():
-    '''Función principal'''
+    """Función principal"""
     print_header("SCRIPT MAESTRO - Metricas_Boti_Mensual")
     
     print("Este script ejecutará los siguientes módulos:")
