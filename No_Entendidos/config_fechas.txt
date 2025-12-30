@@ -1,0 +1,25 @@
+# ========================================
+# Configuracion de fechas para el reporte
+# ========================================
+
+# MODO 1: Mes completo (comportamiento original)
+MES=10
+AÑO=2025
+
+# MODO 2: Rango de fechas personalizado (NUEVO)
+# Descomentar estas lineas para usar rango personalizado:
+# FECHA_INICIO=2025-10-01
+# FECHA_FIN=2025-10-15
+
+# ========================================
+# NOTAS:
+# ========================================
+# - Si ambos modos estan configurados, se usa el MODO 2 (rango)
+# - Formato de fecha: YYYY-MM-DD (ej: 2025-10-01)
+# - FECHA_INICIO debe ser <= FECHA_FIN
+#
+# Ejemplos:
+#   Mes completo:     MES=10, AÑO=2025
+#   Primera quincena: FECHA_INICIO=2025-10-01, FECHA_FIN=2025-10-15
+#   Una semana:       FECHA_INICIO=2025-10-01, FECHA_FIN=2025-10-07
+#   Un día:           FECHA_INICIO=2025-10-15, FECHA_FIN=2025-10-15

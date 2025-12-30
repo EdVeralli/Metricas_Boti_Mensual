@@ -28,6 +28,7 @@ from calendar import monthrange
 import os
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
+import gc  # Garbage collector para liberar memoria
 
 # Nota: pyarrow es necesario para guardar/cargar archivos .parquet (progreso)
 # Si no está instalado: pip install pyarrow --break-system-packages
@@ -255,6 +256,77 @@ def get_month_abbr(mes):
     }
     return meses.get(mes, 'mes')
 
+def dividir_en_chunks_semanales(fecha_inicio, fecha_fin):
+    '''Divide un rango de fechas en chunks semanales para procesar por partes'''
+    from datetime import timedelta
+    
+    chunks = []
+    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+    
+    current = fecha_inicio_dt
+    chunk_num = 1
+    
+    while current <= fecha_fin_dt:
+        chunk_fin = min(current + timedelta(days=6), fecha_fin_dt)
+        chunks.append({
+            'num': chunk_num,
+            'inicio': current.strftime('%Y-%m-%d'),
+            'fin': chunk_fin.strftime('%Y-%m-%d')
+        })
+        current = chunk_fin + timedelta(days=1)
+        chunk_num += 1
+    
+    return chunks
+
+def ejecutar_query_por_chunks(query_name, query_template, fecha_inicio, fecha_fin, testers):
+    '''Ejecuta una query dividiéndola en chunks semanales para evitar MemoryError'''
+    
+    chunks = dividir_en_chunks_semanales(fecha_inicio, fecha_fin)
+    total_chunks = len(chunks)
+    
+    print(f"      [INFO] Dividiendo en {total_chunks} semanas para evitar MemoryError")
+    
+    all_data = []
+    
+    for chunk in chunks:
+        print(f"      [INFO] Semana {chunk['num']}/{total_chunks}: {chunk['inicio']} a {chunk['fin']}")
+        
+        # Construir query para este chunk
+        if not testers:
+            testers_condition = "1=1"
+        else:
+            testers_str = "', '".join(testers)
+            testers_condition = "substr(session_id, 1, 20) NOT IN ('{}')".format(testers_str)
+        
+        query_chunk = query_template.format(
+            fecha_inicio=chunk['inicio'],
+            fecha_fin=chunk['fin'],
+            testers_condition=testers_condition
+        )
+        
+        # Ejecutar query para este chunk
+        df_chunk = ejecutar_query_con_reintentos(
+            f"{query_name} (semana {chunk['num']})",
+            query_chunk
+        )
+        
+        print(f"            [OK] {len(df_chunk):,} registros")
+        all_data.append(df_chunk)
+        
+        # Liberar memoria
+        del df_chunk
+        gc.collect()
+    
+    # Combinar todos los chunks
+    print(f"      [INFO] Combinando {total_chunks} semanas...")
+    df_final = pd.concat(all_data, ignore_index=True)
+    del all_data
+    gc.collect()
+    
+    print(f"      [OK] Total: {len(df_final):,} registros")
+    return df_final
+
 def build_queries(fecha_inicio, fecha_fin, testers):
     '''Construye las 3 queries para Athena'''
     
@@ -296,18 +368,12 @@ def build_queries(fecha_inicio, fecha_fin, testers):
     ORDER BY session_id, creation_time
     """
     
-    query_clicks = f"""
+    # Template para Query Clicks - se ejecuta por chunks semanales
+    template_clicks = """
     WITH fecha as (
         SELECT
             cast('{fecha_inicio} 00:00:00' as timestamp) as fecha_inicio,
             cast('{fecha_fin} 23:59:59' as timestamp) as fecha_fin
-    ),
-    sesiones_validas as (
-        SELECT DISTINCT session_id
-        FROM boti_message_metrics_2
-        LEFT JOIN fecha on 1=1
-        WHERE session_creation_time between fecha_inicio and fecha_fin
-            AND {testers_condition}
     ),
     intents as (
         SELECT 
@@ -322,7 +388,7 @@ def build_queries(fecha_inicio, fecha_fin, testers):
         LEFT JOIN fecha on 1=1
         WHERE ts >= fecha_inicio 
             AND ts <= fecha_fin
-            AND session_id IN (SELECT session_id FROM sesiones_validas)
+            AND {{testers_condition}}
     )
     SELECT 
         a.ts,
@@ -339,18 +405,12 @@ def build_queries(fecha_inicio, fecha_fin, testers):
         AND b.ts >= fecha_inicio AND b.ts <= fecha_fin
     """
     
-    query_botones = f"""
+    # Template para Query Botones - se ejecuta por chunks semanales
+    template_botones = """
     WITH fecha as (
         SELECT
             cast('{fecha_inicio} 00:00:00' as timestamp) as fecha_inicio,
             cast('{fecha_fin} 23:59:59' as timestamp) as fecha_fin
-    ),
-    sesiones_validas as (
-        SELECT DISTINCT session_id
-        FROM boti_message_metrics_2
-        LEFT JOIN fecha on 1=1
-        WHERE session_creation_time between fecha_inicio and fecha_fin
-            AND {testers_condition}
     )
     SELECT  
         ts,
@@ -365,10 +425,10 @@ def build_queries(fecha_inicio, fecha_fin, testers):
         AND ts between fecha_inicio and fecha_fin
         AND message != ''
         AND one_shot = true
-        AND session_id IN (SELECT session_id FROM sesiones_validas)
+        AND {{testers_condition}}
     """
     
-    return query_mensajes, query_clicks, query_botones
+    return query_mensajes, template_clicks, template_botones
 
 def calcular_no_entendimiento(mensajes, clicks, botones):
     '''Calcula D13 = % NE + % Nada'''
@@ -641,13 +701,13 @@ def execute_query_and_save():
     testers = read_testers(data_folder)
     lista_blanca = read_lista_blanca(data_folder)
     
-    query_mensajes, query_clicks, query_botones = build_queries(fecha_inicio, fecha_fin, testers)
+    query_mensajes, template_clicks, template_botones = build_queries(fecha_inicio, fecha_fin, testers)
     
     print("\n" + "=" * 70)
     print("EJECUTANDO QUERIES EN ATHENA...")
     print("=" * 70)
     print("\n⚠️  IMPORTANTE:")
-    print("   - Las queries pueden tardar varios minutos")
+    print("   - Clicks y Botones se dividen en semanas para evitar MemoryError")
     print("   - Si el token AWS expira, el programa se pausará")
     print("   - El progreso se guarda automáticamente")
     print("   - Puedes reanudar desde donde quedaste\n")
@@ -656,7 +716,7 @@ def execute_query_and_save():
     os.makedirs(output_folder, exist_ok=True)
     
     try:
-        # Query 1: Mensajes
+        # Query 1: Mensajes (completa, es más pequeña)
         print("[1/3] Query Mensajes...")
         df_mensajes = cargar_progreso('mensajes', output_folder)
         if df_mensajes is None:
@@ -664,19 +724,31 @@ def execute_query_and_save():
             guardar_progreso(df_mensajes, 'mensajes', output_folder)
         print("      [OK] {:,} registros".format(len(df_mensajes)))
         
-        # Query 2: Clicks
+        # Query 2: Clicks (por chunks semanales)
         print("\n[2/3] Query Clicks...")
         df_clicks = cargar_progreso('clicks', output_folder)
         if df_clicks is None:
-            df_clicks = ejecutar_query_con_reintentos("Query Clicks", query_clicks)
+            df_clicks = ejecutar_query_por_chunks(
+                "Query Clicks",
+                template_clicks,
+                fecha_inicio,
+                fecha_fin,
+                testers
+            )
             guardar_progreso(df_clicks, 'clicks', output_folder)
         print("      [OK] {:,} registros".format(len(df_clicks)))
         
-        # Query 3: Botones
+        # Query 3: Botones (por chunks semanales)
         print("\n[3/3] Query Botones...")
         df_botones = cargar_progreso('botones', output_folder)
         if df_botones is None:
-            df_botones = ejecutar_query_con_reintentos("Query Botones", query_botones)
+            df_botones = ejecutar_query_por_chunks(
+                "Query Botones",
+                template_botones,
+                fecha_inicio,
+                fecha_fin,
+                testers
+            )
             guardar_progreso(df_botones, 'botones', output_folder)
         print("      [OK] {:,} registros".format(len(df_botones)))
         
