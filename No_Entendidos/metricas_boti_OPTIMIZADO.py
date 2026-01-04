@@ -37,10 +37,10 @@ DIRECTORIO_TRABAJO = 'C:/GCBA/Metricas_Boti_Mensual/No_Entendidos'
 FECHA_INICIO = '2025-11-01 00:00:00'
 FECHA_FIN = '2025-12-01 00:00:00'
 
-# Archivos CSV (deben estar en el directorio de trabajo)
-ARCHIVO_MENSAJES = 'mensajes.csv'
-ARCHIVO_CLICKS = 'clicks.csv'
-ARCHIVO_BOTONES = 'botones.csv'
+# Archivos CSV descargados de Athena (están en temp/)
+ARCHIVO_MENSAJES = 'temp/mensajes_temp.csv'
+ARCHIVO_CLICKS = 'temp/clicks_temp.csv'
+ARCHIVO_BOTONES = 'temp/botones_temp.csv'
 ARCHIVO_TESTERS = 'testers.csv'
 ARCHIVO_LISTA_BLANCA = 'Actualizacion_Lista_Blanca.csv'
 
