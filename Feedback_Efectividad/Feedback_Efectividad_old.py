@@ -5,8 +5,6 @@ Cuenta sesiones por rule_name que contengan 'CXF'
 Guarda resultado en CSV y genera Excel con análisis detallado y cálculo de Efectividad
 Lee configuracion de fechas desde archivo config_fechas.txt
 
-MODIFICACIÓN: Incluye SUBTOTALES después de cada categoría en el Excel
-
 MODOS SOPORTADOS:
 1. MES COMPLETO: Especificar MES y AÑO (comportamiento original)
 2. RANGO PERSONALIZADO: Especificar FECHA_INICIO y FECHA_FIN
@@ -249,49 +247,21 @@ def calcular_efectividad(valores):
 
 def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, anio, fecha_inicio, fecha_fin):
     '''
-    Crea 3 Excel separados: base cruda, detalle con efectividad, y resumen
-    ✨ MODIFICADO: Genera archivos separados en lugar de hojas múltiples
+    Crea un Excel con la estructura de "Efectividad 2025"
+    Incluye las 6 reglas específicas y los cálculos de efectividad
     '''
     
-    print("    [INFO] Creando 3 archivos Excel separados...")
+    print("    [INFO] Creando Excel detallado con cálculo de Efectividad...")
     
-    # Generar nombres de archivos
-    base_name = filepath.replace('.xlsx', '').replace('_detalle', '')
-    filepath_base_cruda = base_name + '_base_cruda.xlsx'
-    filepath_efectividad = base_name + '_efectividad.xlsx'
-    filepath_resumen = base_name + '_resumen.xlsx'
+    wb = openpyxl.Workbook()
     
-    # Determinar el header de fecha
-    if modo == 'mes':
-        header_fecha = '{} {}'.format(get_month_name(mes), anio)
-    else:
-        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
-        header_fecha = '{} al {}'.format(
-            fecha_inicio_obj.strftime('%d/%m/%Y'),
-            fecha_fin_obj.strftime('%d/%m/%Y')
-        )
+    # ==================== HOJA 1: BASE CRUDA ====================
+    ws_base = wb.active
+    ws_base.title = 'base cruda'
     
-    # Estilos comunes
+    # Estilos para base cruda
     header_font = Font(bold=True, size=11)
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-    title_font = Font(bold=True, size=12)
-    category_font = Font(bold=True, size=11)
-    normal_font = Font(size=11)
-    result_font = Font(bold=True, size=11)
-    efectividad_font = Font(bold=True, size=12, color="FFFFFF")
-    efectividad_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
-    subtotal_font = Font(bold=True, size=10, italic=True)
-    subtotal_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-    total_font = Font(bold=True, size=12, color="FFFFFF")
-    total_no_fill = PatternFill(start_color="C00000", end_color="C00000", fill_type="solid")
-    total_si_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
-    
-    # ==================== ARCHIVO 1: BASE CRUDA ====================
-    print("    [1/3] Generando: base cruda...")
-    wb1 = openpyxl.Workbook()
-    ws_base = wb1.active
-    ws_base.title = 'base cruda'
     
     # Headers
     ws_base['A1'] = 'rule_name'
@@ -311,15 +281,27 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws_base.column_dimensions['A'].width = 50
     ws_base.column_dimensions['B'].width = 15
     
-    # Guardar
-    wb1.save(filepath_base_cruda)
-    wb1.close()
+    # ==================== HOJA 2: EFECTIVIDAD ====================
+    ws = wb.create_sheet('Efectividad 2025')
     
-    # ==================== ARCHIVO 2: EFECTIVIDAD ====================
-    print("    [2/3] Generando: efectividad...")
-    wb2 = openpyxl.Workbook()
-    ws = wb2.active
-    ws.title = 'Efectividad 2025'
+    # Estilos
+    title_font = Font(bold=True, size=12)
+    category_font = Font(bold=True, size=11)
+    normal_font = Font(size=11)
+    result_font = Font(bold=True, size=11)
+    efectividad_font = Font(bold=True, size=12, color="FFFFFF")
+    efectividad_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
+    
+    # Determinar el header de fecha
+    if modo == 'mes':
+        header_fecha = '{} {}'.format(get_month_name(mes), anio)
+    else:
+        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
+        header_fecha = '{} al {}'.format(
+            fecha_inicio_obj.strftime('%d/%m/%Y'),
+            fecha_fin_obj.strftime('%d/%m/%Y')
+        )
     
     # FILA 1: Header
     ws['A1'] = header_fecha
@@ -327,7 +309,7 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     
     row = 2
     
-    # ============== INTEGRACIONES ==============
+    # INTEGRACIONES
     ws['A{}'.format(row)] = 'Integraciones'
     ws['A{}'.format(row)].font = category_font
     row += 1
@@ -340,19 +322,7 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws['B{}'.format(row)] = valores['integraciones_si']
     row += 1
     
-    # SUBTOTAL INTEGRACIONES
-    ws['A{}'.format(row)] = '  Subtotal Integraciones'
-    ws['B{}'.format(row)] = valores['integraciones_no'] + valores['integraciones_si']
-    ws['A{}'.format(row)].font = subtotal_font
-    ws['B{}'.format(row)].font = Font(bold=True, size=10)
-    ws['A{}'.format(row)].fill = subtotal_fill
-    ws['B{}'.format(row)].fill = subtotal_fill
-    row += 1
-    
-    # Línea en blanco
-    row += 1
-    
-    # ============== ESTÁTICOS ==============
+    # ESTÁTICOS
     ws['A{}'.format(row)] = 'Estáticos'
     ws['A{}'.format(row)].font = category_font
     row += 1
@@ -365,19 +335,7 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws['B{}'.format(row)] = valores['estaticos_si']
     row += 1
     
-    # SUBTOTAL ESTÁTICOS
-    ws['A{}'.format(row)] = '  Subtotal Estáticos'
-    ws['B{}'.format(row)] = valores['estaticos_no'] + valores['estaticos_si']
-    ws['A{}'.format(row)].font = subtotal_font
-    ws['B{}'.format(row)].font = Font(bold=True, size=10)
-    ws['A{}'.format(row)].fill = subtotal_fill
-    ws['B{}'.format(row)].fill = subtotal_fill
-    row += 1
-    
-    # Línea en blanco
-    row += 1
-    
-    # ============== PUSHES ==============
+    # PUSHES
     ws['A{}'.format(row)] = 'Pushes'
     ws['A{}'.format(row)].font = category_font
     row += 1
@@ -390,43 +348,8 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws['B{}'.format(row)] = valores['pushes_si']
     row += 1
     
-    # SUBTOTAL PUSHES
-    ws['A{}'.format(row)] = '  Subtotal Pushes'
-    ws['B{}'.format(row)] = valores['pushes_no'] + valores['pushes_si']
-    ws['A{}'.format(row)].font = subtotal_font
-    ws['B{}'.format(row)].font = Font(bold=True, size=10)
-    ws['A{}'.format(row)].fill = subtotal_fill
-    ws['B{}'.format(row)].fill = subtotal_fill
+    # Línea en blanco
     row += 1
-    
-    # Doble línea en blanco antes de totales
-    row += 2
-    
-    # ============== TOTALES GENERALES ==============
-    # SUMA TOTAL DE "NO"
-    ws['A{}'.format(row)] = 'SUMA TOTAL DE "NO"'
-    ws['B{}'.format(row)] = valores['integraciones_no'] + valores['estaticos_no'] + valores['pushes_no']
-    ws['A{}'.format(row)].font = total_font
-    ws['B{}'.format(row)].font = total_font
-    ws['A{}'.format(row)].fill = total_no_fill
-    ws['B{}'.format(row)].fill = total_no_fill
-    ws['A{}'.format(row)].alignment = Alignment(horizontal='left')
-    ws['B{}'.format(row)].alignment = Alignment(horizontal='center')
-    row += 1
-    
-    # SUMA TOTAL DE "SÍ"
-    ws['A{}'.format(row)] = 'SUMA TOTAL DE "SÍ"'
-    ws['B{}'.format(row)] = valores['integraciones_si'] + valores['estaticos_si'] + valores['pushes_si']
-    ws['A{}'.format(row)].font = total_font
-    ws['B{}'.format(row)].font = total_font
-    ws['A{}'.format(row)].fill = total_si_fill
-    ws['B{}'.format(row)].fill = total_si_fill
-    ws['A{}'.format(row)].alignment = Alignment(horizontal='left')
-    ws['B{}'.format(row)].alignment = Alignment(horizontal='center')
-    row += 1
-    
-    # Doble línea en blanco antes del resumen
-    row += 2
     
     # RESUMEN
     ws['A{}'.format(row)] = 'Respuestas'
@@ -458,15 +381,8 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws.column_dimensions['B'].width = 15
     ws.column_dimensions['C'].width = 15
     
-    # Guardar
-    wb2.save(filepath_efectividad)
-    wb2.close()
-    
-    # ==================== ARCHIVO 3: RESUMEN EJECUTIVO ====================
-    print("    [3/3] Generando: resumen...")
-    wb3 = openpyxl.Workbook()
-    ws_resumen = wb3.active
-    ws_resumen.title = 'Resumen'
+    # ==================== HOJA 3: RESUMEN EJECUTIVO ====================
+    ws_resumen = wb.create_sheet('Resumen')
     
     # Título
     ws_resumen['A1'] = 'FEEDBACK - EFECTIVIDAD'
@@ -517,17 +433,8 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws_resumen.column_dimensions['B'].width = 25
     
     # Guardar
-    wb3.save(filepath_resumen)
-    wb3.close()
-    
-    print("    [OK] 3 archivos Excel creados:")
-    print("        [1] {}".format(filepath_base_cruda.split('/')[-1]))
-    print("        [2] {}".format(filepath_efectividad.split('/')[-1]))
-    print("        [3] {}".format(filepath_resumen.split('/')[-1]))
-    
-    return filepath_base_cruda, filepath_efectividad, filepath_resumen
-
-
+    wb.save(filepath)
+    print("    [OK] Excel detallado creado con {} hojas".format(len(wb.sheetnames)))
 
 def create_or_update_dashboard_master(filepath, efectividad_valor, modo, mes, anio, fecha_inicio, fecha_fin):
     '''
@@ -541,99 +448,101 @@ def create_or_update_dashboard_master(filepath, efectividad_valor, modo, mes, an
         wb = openpyxl.load_workbook(filepath)
         ws = wb.active
         
-        # Actualizar solo D14
+        # Actualizar SOLO D14
         ws['D14'] = efectividad_valor
         ws['D14'].number_format = '0.00%'
         
         wb.save(filepath)
-        print("    [OK] Celda D14 actualizada: {:.2f}%".format(efectividad_valor * 100))
-        return
-    
-    # Si no existe, crear desde cero
-    print("    [INFO] Creando Dashboard Master nuevo...")
-    
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'Dashboard'
-    
-    # Determinar el header de fecha
-    if modo == 'mes':
-        mes_nombre = get_month_name(mes)
-        header_fecha = '{} {}'.format(mes_nombre, anio)
+        print("    [OK] Dashboard Master actualizado (D14 = {:.2f}%)".format(efectividad_valor * 100))
     else:
-        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
-        header_fecha = '{} al {}'.format(
-            fecha_inicio_obj.strftime('%d/%m/%Y'),
-            fecha_fin_obj.strftime('%d/%m/%Y')
-        )
-    
-    # Estilos
-    title_font = Font(bold=True, size=14)
-    header_font = Font(bold=True, size=11)
-    efectividad_font = Font(bold=True, size=12, color="FFFFFF")
-    efectividad_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
-    
-    # Título
-    ws['A1'] = 'Dashboard Master - Feedback Efectividad'
-    ws['A1'].font = title_font
-    
-    ws['A2'] = 'Período: {}'.format(header_fecha)
-    
-    # Headers de columnas
-    ws['B4'] = 'Métrica'
-    ws['C4'] = 'Descripción'
-    ws['D4'] = 'Valor'
-    ws['B4'].font = header_font
-    ws['C4'].font = header_font
-    ws['D4'].font = header_font
-    
-    # Filas de métricas (estructura base, solo D14 tiene valor)
-    metricas = [
-        ('D5', 'N/A', 'Placeholder 1'),
-        ('D6', 'N/A', 'Placeholder 2'),
-        ('D7', 'N/A', 'Placeholder 3'),
-        ('D8', 'N/A', 'Placeholder 4'),
-        ('D9', 'N/A', 'Placeholder 5'),
-        ('D10', 'N/A', 'Placeholder 6'),
-        ('D11', 'N/A', 'Placeholder 7'),
-        ('D12', 'N/A', 'Placeholder 8'),
-        ('D13', 'N/A', 'Placeholder 9'),
-    ]
-    
-    for idx, (celda, valor, desc) in enumerate(metricas, start=5):
-        ws['B{}'.format(idx)] = desc
-        ws['C{}'.format(idx)] = 'Descripción de {}'.format(desc)
-        ws[celda] = valor
-    
-    # CELDA D14: Tasa de Efectividad (LA IMPORTANTE)
-    ws['B14'] = 'Tasa de Efectividad'
-    ws['C14'] = '% de usuarios que dieron feedback positivo'
-    ws['D14'] = efectividad_valor
-    ws['D14'].number_format = '0.00%'
-    ws['D14'].font = efectividad_font
-    ws['D14'].fill = efectividad_fill
-    ws['D14'].alignment = Alignment(horizontal='center')
-    
-    # Más placeholders después de D14
-    ws['B15'] = 'Placeholder 10'
-    ws['C15'] = 'Descripción placeholder 10'
-    ws['D15'] = 'N/A'
-    
-    ws['B16'] = 'Placeholder 11'
-    ws['C16'] = 'Descripción placeholder 11'
-    ws['D16'] = 'N/A'
-    
-    ws['B17'] = 'Uptime servidor'
-    ws['C17'] = 'Disponibilidad del servidor (% tiempo activo)'
-    
-    # Ajustar anchos
-    ws.column_dimensions['B'].width = 35
-    ws.column_dimensions['C'].width = 50
-    ws.column_dimensions['D'].width = 15
-    
-    wb.save(filepath)
-    print("    [OK] Dashboard Master creado (D14 = {:.2f}%)".format(efectividad_valor * 100))
+        print("    [INFO] Dashboard Master no existe, creando desde cero...")
+        
+        # Crear nuevo workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Dashboard'
+        
+        header_font = Font(bold=True)
+        
+        # Determinar el header de fecha
+        if modo == 'mes':
+            header_fecha = '{}-{}'.format(get_month_abbr(mes), str(anio)[-2:])
+        else:
+            fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+            fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            header_fecha = '{}-{}'.format(
+                fecha_inicio_obj.strftime('%d/%m'),
+                fecha_fin_obj.strftime('%d/%m/%y')
+            )
+        
+        # FILA 1: Encabezados
+        ws['B1'] = 'Indicador'
+        ws['C1'] = 'Descripción/Detalle'
+        ws['D1'] = header_fecha
+        ws['B1'].font = header_font
+        ws['C1'].font = header_font
+        ws['D1'].font = header_font
+        
+        # FILA 2-13: Otros indicadores (vacíos)
+        ws['B2'] = 'Conversaciones'
+        ws['C2'] = 'Q Conversaciones'
+        
+        ws['B3'] = 'Usuarios'
+        ws['C3'] = 'Q Usuarios únicos'
+        
+        ws['B4'] = 'Sesiones abiertas por Pushes'
+        ws['C4'] = 'Q Sesiones que se abrieron con una Push'
+        
+        ws['B5'] = 'Sesiones Alcanzadas por Pushes'
+        ws['C5'] = 'Q Sesiones que recibieron al menos 1 Push'
+        
+        ws['B6'] = 'Mensajes Pushes Enviados'
+        ws['C6'] = 'Q de mensajes enviados bajo el formato push [Hilde gris]'
+        
+        ws['B7'] = 'Contenidos en Botmaker'
+        ws['C7'] = 'Contenidos prendidos en botmaker (todos los prendidos, incluy'
+        
+        ws['B8'] = 'Contenidos Prendidos para  el USUARIO'
+        ws['C8'] = 'Contenidos prendidos de cara al usuario (relevantes) – (no inclu'
+        
+        ws['B9'] = 'Interacciones'
+        ws['C9'] = 'Q Interacciones'
+        
+        ws['B10'] = 'Trámites, solicitudes y turnos'
+        ws['C10'] = 'Q Trámites, solicitudes y turnos disponibles'
+        
+        ws['B11'] = 'contenidos mas consultados'
+        ws['C11'] = 'Q Contenidos con más interacciones en el mes (Top 10)'
+        
+        ws['B12'] = 'Derivaciones'
+        ws['C12'] = 'Q Derivaciones'
+        
+        ws['B13'] = 'No entendimiento'
+        ws['C13'] = 'Performance motor de búsqueda del nuevo modelo de IA'
+        
+        # FILA 14: Tasa de Efectividad - AQUI VA NUESTRO VALOR
+        ws['B14'] = 'Tasa de Efectividad'
+        ws['C14'] = 'Mide el porcentaje de usuarios que lograron su objetivo'
+        ws['D14'] = efectividad_valor
+        ws['D14'].number_format = '0.00%'
+        
+        # FILA 15-17: Otros indicadores (vacíos)
+        ws['B15'] = 'CES (Customer Effort Score)'
+        ws['C15'] = 'Mide la facilidad con la que los usuarios pueden interactuar con'
+        
+        ws['B16'] = 'Satisfacción (CSAT)'
+        ws['C16'] = 'Mide la satisfacción usando una escala de 1 a 5'
+        
+        ws['B17'] = 'Uptime servidor'
+        ws['C17'] = 'Disponibilidad del servidor (% tiempo activo)'
+        
+        # Ajustar anchos
+        ws.column_dimensions['B'].width = 35
+        ws.column_dimensions['C'].width = 50
+        ws.column_dimensions['D'].width = 15
+        
+        wb.save(filepath)
+        print("    [OK] Dashboard Master creado (D14 = {:.2f}%)".format(efectividad_valor * 100))
 
 def execute_query_and_save():
     '''Función principal que ejecuta la query y guarda los resultados'''
@@ -751,32 +660,24 @@ def execute_query_and_save():
         print("Guardando CSV...")
         df.to_csv(local_path_csv, index=False, encoding='utf-8-sig')
         
-        print("Generando archivos Excel...")
-        filepath_base_cruda, filepath_efectividad, filepath_resumen = create_excel_with_efectividad(
-            local_path_excel_detalle, df, valores, calculos, modo, mes, anio, fecha_inicio, fecha_fin
-        )
+        print("Generando Excel detallado...")
+        create_excel_with_efectividad(local_path_excel_detalle, df, valores, calculos, modo, mes, anio, fecha_inicio, fecha_fin)
         
         print("Generando Dashboard Master...")
         create_or_update_dashboard_master(local_path_dashboard, calculos['efectividad'], modo, mes, anio, fecha_inicio, fecha_fin)
         
         print("")
         print("ARCHIVOS GENERADOS:")
-        print("    [1] CSV: {}".format(filename_csv))
+        print("    [CSV] {}".format(filename_csv))
         print("")
-        print("    [2] EXCEL BASE CRUDA: {}".format(os.path.basename(filepath_base_cruda)))
-        print("        - {} reglas ordenadas por sesiones".format(len(df)))
+        print("    [EXCEL DETALLE] {}".format(filename_excel_detalle))
+        print("            - Hoja 'base cruda': {} reglas".format(len(df)))
+        print("            - Hoja 'Efectividad 2025': Cálculos detallados")
+        print("            - Hoja 'Resumen': Métricas principales")
+        print("            - Efectividad: {:.2f}%".format(calculos['efectividad'] * 100))
         print("")
-        print("    [3] EXCEL EFECTIVIDAD: {}".format(os.path.basename(filepath_efectividad)))
-        print("        - Cálculos detallados CON SUBTOTALES")
-        print("        - SUMA TOTAL DE 'NO' y 'SÍ'")
-        print("        - Efectividad: {:.2f}%".format(calculos['efectividad'] * 100))
-        print("")
-        print("    [4] EXCEL RESUMEN: {}".format(os.path.basename(filepath_resumen)))
-        print("        - Métricas principales")
-        print("        - Desglose por categoría")
-        print("")
-        print("    [5] DASHBOARD: {}".format(filename_dashboard))
-        print("        - Celda D14 = {:.2f}% (Tasa de Efectividad)".format(calculos['efectividad'] * 100))
+        print("    [DASHBOARD] {}".format(filename_dashboard))
+        print("            - Celda D14 = {:.2f}% (Tasa de Efectividad)".format(calculos['efectividad'] * 100))
         
         print("")
         print("=" * 60)
@@ -798,22 +699,15 @@ if __name__ == "__main__":
     print("")
     print("=" * 60)
     print("SCRIPT: FEEDBACK - EFECTIVIDAD - QUERY ATHENA")
-    print("VERSIÓN CON ARCHIVOS EXCEL SEPARADOS")
     print("=" * 60)
     print("Rol requerido: PIBAConsumeBoti")
-    print("Salida: CSV + 3 Excel + Dashboard Master")
+    print("Salida: CSV + Excel Detalle + Dashboard Master")
     print("Query: Reglas CXF con conteo de sesiones")
     print("")
     print("ARCHIVOS GENERADOS:")
-    print("  [1] CSV: feedback_efectividad_[fecha].csv")
-    print("  [2] Excel BASE CRUDA: ...base_cruda.xlsx")
-    print("      - Todas las reglas CXF ordenadas")
-    print("  [3] Excel EFECTIVIDAD: ...efectividad.xlsx")
-    print("      - Cálculos detallados con SUBTOTALES")
-    print("      - SUMA TOTAL DE 'NO' y 'SÍ' ✨")
-    print("  [4] Excel RESUMEN: ...resumen.xlsx")
-    print("      - Métricas principales ejecutivas")
-    print("  [5] Dashboard: ...dashboard.xlsx (celda D14)")
+    print("  - CSV: feedback_efectividad_[fecha].csv")
+    print("  - Excel Detalle: feedback_efectividad_detalle_[fecha].xlsx (3 hojas)")
+    print("  - Dashboard: feedback_efectividad_[fecha].xlsx (celda D14)")
     print("")
     print("CÁLCULOS:")
     print("  - Extrae 6 reglas específicas (Integraciones, Estáticos, Pushes)")
