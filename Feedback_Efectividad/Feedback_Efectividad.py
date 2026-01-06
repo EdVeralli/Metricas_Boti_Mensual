@@ -39,7 +39,9 @@ REGLAS_EFECTIVIDAD = {
     'estaticos_no': 'CXF01CUX02 No Estáticos',
     'estaticos_si': 'CXF01CUX02 Sí Estáticos',
     'pushes_no': 'CXF01CUX03 No Pushes',
-    'pushes_si': 'CXF01CUX03 Sí Pushes'
+    'pushes_si': 'CXF01CUX03 Sí Pushes',
+    'cats_no': 'CXF01CUX04 No CATs',
+    'cats_si': 'CXF01CUX04 Sí CATs'
 }
 
 # ==================== FUNCIONES ====================
@@ -216,19 +218,22 @@ def extraer_valores_efectividad(df):
 def calcular_efectividad(valores):
     '''
     Calcula las métricas de efectividad basadas en los valores extraídos
+    Incluye: Integraciones, Estáticos, Pushes y CATs
     '''
     # Respuestas Positivas (Sí)
     positivas = (
         valores['integraciones_si'] +
         valores['estaticos_si'] +
-        valores['pushes_si']
+        valores['pushes_si'] +
+        valores['cats_si']
     )
     
     # Respuestas Negativas (No)
     negativas = (
         valores['integraciones_no'] +
         valores['estaticos_no'] +
-        valores['pushes_no']
+        valores['pushes_no'] +
+        valores['cats_no']
     )
     
     # Total
@@ -399,13 +404,38 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     ws['B{}'.format(row)].fill = subtotal_fill
     row += 1
     
+    # Línea en blanco
+    row += 1
+    
+    # ============== CATS ==============
+    ws['A{}'.format(row)] = 'CATs'
+    ws['A{}'.format(row)].font = category_font
+    row += 1
+    
+    ws['A{}'.format(row)] = REGLAS_EFECTIVIDAD['cats_no']
+    ws['B{}'.format(row)] = valores['cats_no']
+    row += 1
+    
+    ws['A{}'.format(row)] = REGLAS_EFECTIVIDAD['cats_si']
+    ws['B{}'.format(row)] = valores['cats_si']
+    row += 1
+    
+    # SUBTOTAL CATS
+    ws['A{}'.format(row)] = '  Subtotal CATs'
+    ws['B{}'.format(row)] = valores['cats_no'] + valores['cats_si']
+    ws['A{}'.format(row)].font = subtotal_font
+    ws['B{}'.format(row)].font = Font(bold=True, size=10)
+    ws['A{}'.format(row)].fill = subtotal_fill
+    ws['B{}'.format(row)].fill = subtotal_fill
+    row += 1
+    
     # Doble línea en blanco antes de totales
     row += 2
     
     # ============== TOTALES GENERALES ==============
     # SUMA TOTAL DE "NO"
     ws['A{}'.format(row)] = 'SUMA TOTAL DE "NO"'
-    ws['B{}'.format(row)] = valores['integraciones_no'] + valores['estaticos_no'] + valores['pushes_no']
+    ws['B{}'.format(row)] = valores['integraciones_no'] + valores['estaticos_no'] + valores['pushes_no'] + valores['cats_no']
     ws['A{}'.format(row)].font = total_font
     ws['B{}'.format(row)].font = total_font
     ws['A{}'.format(row)].fill = total_no_fill
@@ -416,7 +446,7 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     
     # SUMA TOTAL DE "SÍ"
     ws['A{}'.format(row)] = 'SUMA TOTAL DE "SÍ"'
-    ws['B{}'.format(row)] = valores['integraciones_si'] + valores['estaticos_si'] + valores['pushes_si']
+    ws['B{}'.format(row)] = valores['integraciones_si'] + valores['estaticos_si'] + valores['pushes_si'] + valores['cats_si']
     ws['A{}'.format(row)].font = total_font
     ws['B{}'.format(row)].font = total_font
     ws['A{}'.format(row)].fill = total_si_fill
@@ -511,6 +541,9 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
     
     ws_resumen['A15'] = 'Pushes:'
     ws_resumen['B15'] = 'No: {:,} | Sí: {:,}'.format(valores['pushes_no'], valores['pushes_si'])
+    
+    ws_resumen['A16'] = 'CATs:'
+    ws_resumen['B16'] = 'No: {:,} | Sí: {:,}'.format(valores['cats_no'], valores['cats_si'])
     
     # Ajustar anchos
     ws_resumen.column_dimensions['A'].width = 30
@@ -723,6 +756,8 @@ def execute_query_and_save():
         print("  Estáticos Sí:      {:,}".format(valores['estaticos_si']))
         print("  Pushes No:         {:,}".format(valores['pushes_no']))
         print("  Pushes Sí:         {:,}".format(valores['pushes_si']))
+        print("  CATs No:           {:,}".format(valores['cats_no']))
+        print("  CATs Sí:           {:,}".format(valores['cats_si']))
         
         # Calcular efectividad
         calculos = calcular_efectividad(valores)
@@ -816,7 +851,7 @@ if __name__ == "__main__":
     print("  [5] Dashboard: ...dashboard.xlsx (celda D14)")
     print("")
     print("CÁLCULOS:")
-    print("  - Extrae 6 reglas específicas (Integraciones, Estáticos, Pushes)")
+    print("  - Extrae 8 reglas específicas (Integraciones, Estáticos, Pushes, CATs)")
     print("  - Calcula Positivas vs Negativas")
     print("  - Calcula Efectividad (%)")
     print("")
