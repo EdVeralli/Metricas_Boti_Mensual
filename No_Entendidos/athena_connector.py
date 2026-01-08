@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -29,6 +30,7 @@ def leer_config_fechas(archivo='config_fechas.txt'):
     Lee config_fechas.txt y retorna (fecha_inicio, fecha_fin)
     
     Soporta dos modos:
+    
     1. MES=10, AÑO=2025 → Calcula todo el mes
     2. FECHA_INICIO=2025-10-01, FECHA_FIN=2025-10-31 → Rango específico
     
