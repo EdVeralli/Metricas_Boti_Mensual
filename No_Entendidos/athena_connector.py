@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -30,7 +29,6 @@ def leer_config_fechas(archivo='config_fechas.txt'):
     Lee config_fechas.txt y retorna (fecha_inicio, fecha_fin)
     
     Soporta dos modos:
-    
     1. MES=10, AÑO=2025 → Calcula todo el mes
     2. FECHA_INICIO=2025-10-01, FECHA_FIN=2025-10-31 → Rango específico
     
@@ -162,8 +160,8 @@ def ejecutar_query_athena_con_reintentos(query_sql, max_intentos=3):
     Raises:
         Exception: Si la query falla después de todos los reintentos
     """
-    # Crear sesión inicial de boto3
-    session = boto3.Session(region_name=ATHENA_REGION)
+    # Crear sesión inicial FRESCA (sin cache)
+    session = crear_session_boto3_fresca()
     
     for intento in range(1, max_intentos + 1):
         try:
@@ -172,9 +170,9 @@ def ejecutar_query_athena_con_reintentos(query_sql, max_intentos=3):
                 print(f"\n⚠️  Credenciales inválidas antes del intento {intento}/{max_intentos}")
                 if intento < max_intentos:
                     if solicitar_renovacion_token():
-                        # CLAVE: Recrear sesión con las nuevas credenciales
+                        # CLAVE: Recrear sesión COMPLETAMENTE NUEVA
                         print("🔄 Recreando sesión de boto3 con nuevas credenciales...")
-                        session = boto3.Session(region_name=ATHENA_REGION)
+                        session = crear_session_boto3_fresca()
                         continue
                     else:
                         raise Exception("No se pudo renovar el token AWS")
@@ -196,9 +194,9 @@ def ejecutar_query_athena_con_reintentos(query_sql, max_intentos=3):
                     print(f"   Intento {intento}/{max_intentos}")
                     
                     if solicitar_renovacion_token():
-                        # CLAVE: Recrear sesión con las nuevas credenciales
+                        # CLAVE: Recrear sesión COMPLETAMENTE NUEVA
                         print("🔄 Recreando sesión de boto3 con nuevas credenciales...")
-                        session = boto3.Session(region_name=ATHENA_REGION)
+                        session = crear_session_boto3_fresca()
                         print(f"   Reintentando query...")
                         continue
                     else:
@@ -388,15 +386,37 @@ def ejecutar_y_descargar(query_file, fecha_inicio, fecha_fin, output_file):
     return output_file
 
 
+def crear_session_boto3_fresca():
+    """
+    Crea una sesión boto3 completamente nueva forzando recarga de credenciales
+    """
+    # Limpiar TODAS las variables de entorno de AWS
+    for key in list(os.environ.keys()):
+        if key.startswith('AWS_'):
+            del os.environ[key]
+    
+    # Limpiar el DEFAULT_SESSION global de boto3
+    import boto3
+    boto3.DEFAULT_SESSION = None
+    
+    # Crear nueva sesión SIN cache
+    session = boto3.Session(region_name=ATHENA_REGION)
+    
+    return session
+
+
 def verificar_credenciales_aws():
     """
     Verifica si las credenciales de AWS están activas
+    IMPORTANTE: Usa sesión fresca para evitar cache
     
     Returns:
         bool: True si las credenciales están activas, False si no
     """
     try:
-        sts_client = boto3.client('sts', region_name=ATHENA_REGION)
+        # Crear sesión fresca para verificar (sin cache)
+        session = crear_session_boto3_fresca()
+        sts_client = session.client('sts')
         sts_client.get_caller_identity()
         return True
     except Exception:
@@ -424,25 +444,26 @@ def solicitar_renovacion_token():
     
     input("Presiona ENTER cuando hayas renovado el token...")
     
-    # Esperar para que las credenciales se propaguen
+    # Esperar propagación
     print("\n⏳ Esperando 5 segundos para que las credenciales se propaguen...")
     time.sleep(5)
     
-    # Limpiar cache de boto3 forzando recarga
+    # Forzar recarga COMPLETA
     print("🔄 Recargando credenciales de boto3...")
-    import importlib
-    import botocore.session
-    importlib.reload(botocore.session)
     
-    # Verificar que el token fue renovado
+    # Verificar token con sesión completamente nueva
     print("🔐 Verificando token renovado...")
     
     max_verificaciones = 3
     for intento in range(1, max_verificaciones + 1):
-        if verificar_credenciales_aws():
+        try:
+            # Crear sesión NUEVA para cada verificación
+            test_session = crear_session_boto3_fresca()
+            sts = test_session.client('sts')
+            sts.get_caller_identity()
             print("✅ Token renovado correctamente. Continuando...\n")
             return True
-        else:
+        except Exception as e:
             if intento < max_verificaciones:
                 print(f"⚠️  Intento {intento}/{max_verificaciones} - Token aún no válido")
                 print(f"   Esperando 3 segundos más...")

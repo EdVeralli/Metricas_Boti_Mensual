@@ -251,23 +251,39 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         testers = np.array([])  # Sin testers por defecto
         rules_mos = np.array([])  # Sin lista blanca por defecto
         
-        # Intentar cargar testers si existe
-        archivo_testers = 'testers.csv'
-        if os_module.path.exists(archivo_testers):
-            testers_df = cargar_csv_simple(archivo_testers)
+        # Intentar cargar testers (buscar en directorio padre)
+        archivo_testers_local = 'testers.csv'
+        archivo_testers_padre = '../testers.csv'
+        
+        if os_module.path.exists(archivo_testers_local):
+            testers_df = cargar_csv_simple(archivo_testers_local)
             testers = testers_df.iloc[:, 0].values
             imprimir_progreso(f"✓ Testers: {len(testers)}")
+            del testers_df
+            liberar_memoria()
+        elif os_module.path.exists(archivo_testers_padre):
+            testers_df = pd.read_csv(archivo_testers_padre)
+            testers = testers_df.iloc[:, 0].values
+            imprimir_progreso(f"✓ Testers (desde directorio padre): {len(testers)}")
             del testers_df
             liberar_memoria()
         else:
             imprimir_progreso("⚠ Archivo testers.csv no encontrado (continuando sin filtro)")
         
-        # Intentar cargar lista blanca si existe
-        archivo_lista_blanca = 'Actualizacion_Lista_Blanca.csv'
-        if os_module.path.exists(archivo_lista_blanca):
-            mos = cargar_csv_simple(archivo_lista_blanca)
+        # Intentar cargar lista blanca (buscar en directorio padre)
+        archivo_lista_blanca_local = 'Actualizacion_Lista_Blanca.csv'
+        archivo_lista_blanca_padre = '../Actualizacion_Lista_Blanca.csv'
+        
+        if os_module.path.exists(archivo_lista_blanca_local):
+            mos = cargar_csv_simple(archivo_lista_blanca_local)
             rules_mos = mos['Nombre de la intención'].str.strip().values
             imprimir_progreso(f"✓ Intenciones mostrables: {len(rules_mos)}")
+            del mos
+            liberar_memoria()
+        elif os_module.path.exists(archivo_lista_blanca_padre):
+            mos = pd.read_csv(archivo_lista_blanca_padre)
+            rules_mos = mos['Nombre de la intención'].str.strip().values
+            imprimir_progreso(f"✓ Intenciones mostrables (desde directorio padre): {len(rules_mos)}")
             del mos
             liberar_memoria()
         else:
