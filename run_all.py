@@ -50,6 +50,13 @@ MODULOS = [
         'requiere_aws': True
     },
     {
+        'nombre': 'No Entendimiento',
+        'carpeta': 'No_Entendidos',
+        'script': 'No_Entendidos.py',
+        'celdas': 'D13',
+        'requiere_aws': True
+    },
+    {
         'nombre': 'Feedback - Efectividad',
         'carpeta': 'Feedback_Efectividad',
         'script': 'Feedback_Efectividad.py',

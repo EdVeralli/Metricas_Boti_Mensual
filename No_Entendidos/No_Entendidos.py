@@ -34,6 +34,8 @@ import os as os_module
 import sys
 import gc
 import json
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
 
 warnings.filterwarnings('ignore')
 pd.set_option("display.max_colwidth", None)
@@ -59,20 +61,50 @@ def read_date_config(config_file):
     - MODO 1: MES + AÑO (mes completo)
     - MODO 2: FECHA_INICIO + FECHA_FIN (rango personalizado)
     
+    Busca el archivo en múltiples ubicaciones:
+    1. Ruta especificada
+    2. Directorio actual
+    3. Directorio padre
+    4. Dos niveles arriba
+    
     Retorna: (modo, fecha_inicio, fecha_fin, mes, anio, descripcion)
     '''
+    
+    # Intentar múltiples ubicaciones
+    possible_paths = [
+        config_file,                           # Ruta original (../config_fechas.txt)
+        'config_fechas.txt',                   # Directorio actual
+        '../config_fechas.txt',                # Directorio padre
+        '../../config_fechas.txt',             # Dos niveles arriba
+    ]
+    
+    config_path = None
+    for path in possible_paths:
+        if os_module.path.exists(path):
+            config_path = path
+            break
+    
+    if config_path is None:
+        print(f"[ERROR] No se encuentra config_fechas.txt en ninguna ubicación")
+        print("    Buscado en:")
+        for path in possible_paths:
+            abs_path = os_module.path.abspath(path)
+            print(f"      - {abs_path}")
+        print("\n    Crea el archivo config_fechas.txt con:")
+        print("      MES=12")
+        print("      AÑO=2025")
+        return None, None, None, None, None, None
+    
+    # Encontrado, imprimir ubicación
+    print(f"[INFO] Usando: {os_module.path.abspath(config_path)}")
+    
     try:
-        if not os_module.path.exists(config_file):
-            print(f"[ERROR] No se encuentra el archivo: {config_file}")
-            print("    Debes tener config_fechas.txt en el directorio raíz")
-            return None, None, None, None, None, None
-        
         mes = None
         anio = None
         fecha_inicio_str = None
         fecha_fin_str = None
         
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('#'):
@@ -118,7 +150,7 @@ def read_date_config(config_file):
             print("[INFO] Modo: MES COMPLETO")
             return 'mes', fecha_inicio_full, fecha_fin_full, mes, anio, descripcion
         
-        print(f"[ERROR] El archivo {config_file} no contiene configuracion valida")
+        print(f"[ERROR] El archivo {config_path} no contiene configuracion valida")
         return None, None, None, None, None, None
         
     except Exception as e:
@@ -628,6 +660,267 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         return None
 
 # =============================================================================
+# FUNCIONES DE GENERACIÓN DE EXCEL
+# =============================================================================
+
+def ensure_output_folder():
+    '''
+    Asegura que exista la carpeta output/ al mismo nivel que temp/
+    Retorna la ruta a la carpeta output
+    '''
+    # Obtener directorio actual
+    current_dir = os_module.getcwd()
+    
+    # Si estamos en temp/, subir un nivel
+    if current_dir.endswith('temp'):
+        output_dir = os_module.path.join('..', 'output')
+    else:
+        output_dir = 'output'
+    
+    # Crear carpeta si no existe
+    os_module.makedirs(output_dir, exist_ok=True)
+    
+    return output_dir
+
+
+def create_excel_detalle(filepath, promedios1, modo, mes, anio, fecha_inicio, fecha_fin):
+    '''
+    Crea Excel con análisis detallado de No Entendimiento
+    Estructura similar al legacy pero con datos de promedios1
+    '''
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'No Entendimiento'
+    
+    # Estilos
+    title_font = Font(bold=True, size=14)
+    header_font = Font(bold=True, size=11)
+    d13_font = Font(bold=True, size=12, color="FFFFFF")
+    d13_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
+    
+    # Header con fecha
+    if modo == 'mes':
+        header_fecha = '{} {}'.format(get_month_name(mes), anio)
+    else:
+        fecha_inicio_obj = datetime.strptime(fecha_inicio[:10], '%Y-%m-%d')
+        fecha_fin_obj = datetime.strptime(fecha_fin[:10], '%Y-%m-%d')
+        header_fecha = '{} al {}'.format(
+            fecha_inicio_obj.strftime('%d/%m/%Y'),
+            fecha_fin_obj.strftime('%d/%m/%Y')
+        )
+    
+    ws['A1'] = 'NO ENTENDIMIENTO - Análisis Detallado'
+    ws['A1'].font = title_font
+    ws['A2'] = 'Período: {}'.format(header_fecha)
+    
+    row = 4
+    ws['A{}'.format(row)] = 'CATEGORÍAS'
+    ws['A{}'.format(row)].font = header_font
+    row += 1
+    
+    # Valores absolutos (asumiendo que tenemos el total)
+    # En el legacy tenían conteos, aquí tenemos porcentajes
+    # Vamos a mostrar los porcentajes directamente
+    ws['A{}'.format(row)] = 'OneShots:'
+    ws['B{}'.format(row)] = promedios1['one']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Clicks:'
+    ws['B{}'.format(row)] = promedios1['click']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Texto:'
+    ws['B{}'.format(row)] = promedios1['texto']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Abandonos:'
+    ws['B{}'.format(row)] = promedios1['abandonos']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Nada:'
+    ws['B{}'.format(row)] = promedios1['nada']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'NE:'
+    ws['B{}'.format(row)] = promedios1['ne']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Letra:'
+    ws['B{}'.format(row)] = promedios1['letra']
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'TOTAL:'
+    total = sum(promedios1.values())
+    ws['B{}'.format(row)] = total
+    ws['B{}'.format(row)].number_format = '0.00%'
+    ws['A{}'.format(row)].font = Font(bold=True)
+    ws['B{}'.format(row)].font = Font(bold=True)
+    row += 2
+    
+    # Métricas derivadas
+    ws['A{}'.format(row)] = 'MÉTRICAS'
+    ws['A{}'.format(row)].font = header_font
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Resolución (One+Click+Texto):'
+    resolucion = promedios1['one'] + promedios1['click'] + promedios1['texto']
+    ws['B{}'.format(row)] = resolucion
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 1
+    
+    ws['A{}'.format(row)] = 'Problemas (Abandonos+Letra):'
+    problemas = promedios1['abandonos'] + promedios1['letra']
+    ws['B{}'.format(row)] = problemas
+    ws['B{}'.format(row)].number_format = '0.00%'
+    row += 2
+    
+    # D13 - Métrica principal
+    ws['A{}'.format(row)] = 'D13 - NO ENTENDIMIENTO:'
+    d13 = promedios1['nada'] + promedios1['ne']
+    ws['B{}'.format(row)] = d13
+    ws['B{}'.format(row)].number_format = '0.00%'
+    ws['A{}'.format(row)].font = Font(bold=True, size=12)
+    ws['B{}'.format(row)].font = d13_font
+    ws['B{}'.format(row)].fill = d13_fill
+    ws['B{}'.format(row)].alignment = Alignment(horizontal='center')
+    
+    # Ajustar anchos
+    ws.column_dimensions['A'].width = 35
+    ws.column_dimensions['B'].width = 20
+    
+    wb.save(filepath)
+    print(f"  ✅ Excel detallado: {filepath}")
+
+
+def create_or_update_dashboard_master(filepath, d13_valor, modo, mes, anio, fecha_inicio, fecha_fin):
+    '''
+    Crea o actualiza Dashboard Master con estructura completa
+    Solo actualiza D13, el resto de valores quedan vacíos para llenar manualmente
+    '''
+    
+    if os_module.path.exists(filepath):
+        # Actualizar Excel existente - solo tocar D13
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb.active
+        ws['D13'] = d13_valor
+        ws['D13'].number_format = '0.00%'
+        wb.save(filepath)
+        print(f"  ✅ Dashboard actualizado: {filepath} (D13 = {d13_valor*100:.2f}%)")
+    else:
+        # Crear nuevo Dashboard con estructura completa
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Dashboard'
+        
+        # Header con fecha
+        if modo == 'mes':
+            mes_abbr = get_month_name(mes)[:3].lower()
+            header_fecha = '{}-{}'.format(mes_abbr, str(anio)[-2:])
+        else:
+            fecha_inicio_obj = datetime.strptime(fecha_inicio[:10], '%Y-%m-%d')
+            fecha_fin_obj = datetime.strptime(fecha_fin[:10], '%Y-%m-%d')
+            header_fecha = '{}-{}'.format(
+                fecha_inicio_obj.strftime('%d/%m'),
+                fecha_fin_obj.strftime('%d/%m/%y')
+            )
+        
+        # Estilos
+        header_font = Font(bold=True)
+        
+        # FILA 1: Headers
+        ws['B1'] = 'Indicador'
+        ws['C1'] = 'Descripción/Detalle'
+        ws['D1'] = header_fecha
+        ws['B1'].font = header_font
+        ws['C1'].font = header_font
+        ws['D1'].font = header_font
+        
+        # ESTRUCTURA COMPLETA DEL DASHBOARD
+        # Fila 2: Conversaciones
+        ws['B2'] = 'Conversaciones'
+        ws['C2'] = 'Q Conversaciones'
+        
+        # Fila 3: Usuarios
+        ws['B3'] = 'Usuarios'
+        ws['C3'] = 'Q Usuarios únicos'
+        
+        # Fila 4: Sesiones abiertas por Pushes
+        ws['B4'] = 'Sesiones abiertas por Pushes'
+        ws['C4'] = 'Q Sesiones que se abrieron con una Push'
+        
+        # Fila 5: Sesiones Alcanzadas por Pushes
+        ws['B5'] = 'Sesiones Alcanzadas por Pushes'
+        ws['C5'] = 'Q Sesiones que recibieron al menos 1 Push'
+        
+        # Fila 6: Mensajes Pushes Enviados
+        ws['B6'] = 'Mensajes Pushes Enviados'
+        ws['C6'] = 'Q de mensajes enviados bajo el formato push [Hilde gris]'
+        
+        # Fila 7: Contenidos en Botmaker
+        ws['B7'] = 'Contenidos en Botmaker'
+        ws['C7'] = 'Contenidos prendidos en botmaker (todos los prendidos, incluy'
+        
+        # Fila 8: Contenidos Prendidos para el USUARIO
+        ws['B8'] = 'Contenidos Prendidos para  el USUARIO'
+        ws['C8'] = 'Contenidos prendidos de cara al usuario (relevantes) – (no inclu'
+        
+        # Fila 9: Interacciones
+        ws['B9'] = 'Interacciones'
+        ws['C9'] = 'Q Interacciones'
+        
+        # Fila 10: Trámites, solicitudes y turnos
+        ws['B10'] = 'Trámites, solicitudes y turnos'
+        ws['C10'] = 'Q Trámites, solicitudes y turnos disponibles'
+        
+        # Fila 11: contenidos mas consultados
+        ws['B11'] = 'contenidos mas consultados'
+        ws['C11'] = 'Q Contenidos con más interacciones en el mes (Top 10)'
+        
+        # Fila 12: Derivaciones
+        ws['B12'] = 'Derivaciones'
+        ws['C12'] = 'Q Derivaciones'
+        
+        # Fila 13: No entendimiento (LA QUE LLENAMOS)
+        ws['B13'] = 'No entendimiento'
+        ws['C13'] = 'Performance motor de búsqueda del nuevo modelo de IA'
+        ws['D13'] = d13_valor
+        ws['D13'].number_format = '0.00%'
+        
+        # Fila 14: Tasa de Efectividad
+        ws['B14'] = 'Tasa de Efectividad'
+        ws['C14'] = 'Mide el porcentaje de usuarios que lograron su objetivo'
+        
+        # Fila 15: CES (Customer Effort Score)
+        ws['B15'] = 'CES (Customer Effort Score)'
+        ws['C15'] = 'Mide la facilidad con la que los usuarios pueden interactuar con'
+        
+        # Fila 16: Satisfacción (CSAT)
+        ws['B16'] = 'Satisfacción (CSAT)'
+        ws['C16'] = 'Mide la satisfacción usando una escala de 1 a 5'
+        
+        # Fila 17: Uptime servidor
+        ws['B17'] = 'Uptime servidor'
+        ws['C17'] = 'Disponibilidad del servidor (% tiempo activo)'
+        
+        # Ajustar anchos de columnas
+        ws.column_dimensions['A'].width = 5
+        ws.column_dimensions['B'].width = 35
+        ws.column_dimensions['C'].width = 60
+        ws.column_dimensions['D'].width = 15
+        
+        wb.save(filepath)
+        print(f"  ✅ Dashboard creado: {filepath} (D13 = {d13_valor*100:.2f}%)")
+
+
+# =============================================================================
 # EJECUCIÓN
 # =============================================================================
 
@@ -688,7 +981,43 @@ if __name__ == "__main__":
         with open(archivo_salida, 'w', encoding='utf-8') as f:
             json.dump(resultado_completo, f, indent=2, ensure_ascii=False)
         
-        print(f"\n📁 Resultados guardados en: {archivo_salida}")
+        print(f"\n📁 Archivo JSON: {archivo_salida}")
+        
+        # Generar archivos Excel
+        print("\n📊 Generando archivos Excel...")
+        
+        # Asegurar que existe carpeta output
+        output_dir = ensure_output_folder()
+        print(f"  📁 Carpeta output: {os_module.path.abspath(output_dir)}")
+        
+        # Nombres de archivos Excel (se guardarán en output/)
+        if modo == 'mes' and mes and anio:
+            mes_nombre = get_month_name(mes)
+            excel_detalle = os_module.path.join(output_dir, f"no_entendimiento_detalle_{mes_nombre}_{anio}.xlsx")
+            excel_dashboard = os_module.path.join(output_dir, f"no_entendimiento_{mes_nombre}_{anio}.xlsx")
+        else:
+            fecha_inicio_str = fecha_inicio[:10].replace('-', '')
+            fecha_fin_str = fecha_fin[:10].replace('-', '')
+            excel_detalle = os_module.path.join(output_dir, f"no_entendimiento_detalle_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx")
+            excel_dashboard = os_module.path.join(output_dir, f"no_entendimiento_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx")
+        
+        # Crear Excel detallado
+        create_excel_detalle(excel_detalle, promedios1, modo, mes, anio, fecha_inicio, fecha_fin)
+        
+        # Calcular D13 (Nada + NE)
+        d13 = promedios1['nada'] + promedios1['ne']
+        
+        # Crear/actualizar Dashboard Master
+        create_or_update_dashboard_master(excel_dashboard, d13, modo, mes, anio, fecha_inicio, fecha_fin)
+        
         print("\n" + "=" * 80)
+        print("📦 ARCHIVOS GENERADOS:")
+        print("=" * 80)
+        print(f"  [1] JSON:               {archivo_salida}")
+        print(f"  [2] Excel Detallado:    {excel_detalle}")
+        print(f"  [3] Dashboard Master:   {excel_dashboard}")
+        print("")
+        print(f"  🎯 D13 (No Entendimiento): {d13*100:.2f}%")
+        print("=" * 80)
     else:
         sys.exit(1)

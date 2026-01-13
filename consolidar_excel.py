@@ -122,6 +122,15 @@ MODULOS = {
             'D6': 'Pushes Enviadas'
         }
     },
+    'no_entendimiento': {
+        'carpeta': 'No_Entendimiento/output',
+        'patron': 'no_entendimiento_*.xlsx',
+        'patron_alternativo': None,
+        'celdas': {
+            'D13': 'No Entendimiento'
+        },
+        'excluir_patron': '*_detalle_*'
+    },
     'feedback_efectividad': {
         'carpeta': 'Feedback_Efectividad/output',
         'patron': 'feedback_efectividad_*.xlsx',
@@ -413,7 +422,9 @@ def crear_dashboard_consolidado(metricas, periodo):
             ws[celda_valor].border = estilos['valor']['border']
             
             # Aplicar formato específico según la celda
-            if celda_valor == 'D14':  # Efectividad (porcentaje)
+            if celda_valor == 'D13':  # No Entendimiento (porcentaje)
+                ws[celda_valor].number_format = '0.00%'
+            elif celda_valor == 'D14':  # Efectividad (porcentaje)
                 ws[celda_valor].number_format = '0.00%'
             elif celda_valor == 'D15':  # CES (número decimal)
                 ws[celda_valor].number_format = '0.00'
@@ -446,7 +457,7 @@ def mostrar_resumen(metricas, nombre_archivo):
     metricas_sin_valor = 0
     
     # Lista de todas las celdas de métricas
-    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D14', 'D15', 'D16', 'D17']
+    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D13', 'D14', 'D15', 'D16', 'D17']
     
     for celda in celdas_metricas:
         valor = metricas.get(celda, '-')
@@ -458,6 +469,7 @@ def mostrar_resumen(metricas, nombre_archivo):
             'D4': 'Sesiones Abiertas',
             'D5': 'Sesiones Alcanzadas',
             'D6': 'Pushes Enviadas',
+            'D13': 'No Entendimiento',
             'D14': 'Efectividad',
             'D15': 'CES',
             'D16': 'CSAT',
@@ -496,6 +508,7 @@ def main():
     print("  • Sesiones Abiertas (D4)")
     print("  • Sesiones Alcanzadas (D5)")
     print("  • Pushes Enviadas (D6)")
+    print("  • No Entendimiento (D13)")
     print("  • Feedback - Efectividad (D14)")
     print("  • Feedback - CES (D15)")
     print("  • Feedback - CSAT (D16)")
