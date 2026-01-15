@@ -1,10 +1,10 @@
-# 📊 Sistema de Métricas Boti - No Entendimiento
+# 📊 Sistema de Métricas Boti - GCBA
 
 [![GitHub](https://img.shields.io/badge/GitHub-EdVeralli%2FMetricas__Boti__Mensual-blue?logo=github)](https://github.com/EdVeralli/Metricas_Boti_Mensual)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-GCBA-green)]()
 
-Sistema automatizado para cálculo de métricas de No Entendimiento del chatbot Boti de la Ciudad de Buenos Aires.
+Sistema automatizado para cálculo de métricas mensuales del chatbot Boti de la Ciudad de Buenos Aires.
 
 **🔗 Repositorio:** https://github.com/EdVeralli/Metricas_Boti_Mensual
 
@@ -13,14 +13,15 @@ Sistema automatizado para cálculo de métricas de No Entendimiento del chatbot 
 ## 📋 Tabla de Contenidos
 
 - [Descripción General](#-descripción-general)
+- [Arquitectura del Sistema](#-arquitectura-del-sistema)
 - [Requisitos](#-requisitos)
 - [Instalación](#-instalación)
 - [Configuración](#-configuración)
 - [Uso - Guía Rápida](#-uso---guía-rápida)
-- [Archivos Generados](#-archivos-generados)
+- [Módulos Implementados](#-módulos-implementados)
+- [Dashboard de Métricas](#-dashboard-de-métricas)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Métricas Calculadas](#-métricas-calculadas)
-- [Documentación Técnica](#-documentación-técnica)
+- [Scripts Principales](#-scripts-principales)
 - [Solución de Problemas](#-solución-de-problemas)
 - [Changelog](#-changelog)
 
@@ -28,42 +29,76 @@ Sistema automatizado para cálculo de métricas de No Entendimiento del chatbot 
 
 ## 🎯 Descripción General
 
-Este sistema procesa datos del chatbot Boti para calcular métricas de efectividad, específicamente la métrica **D13 (No Entendimiento)**.
+Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave de rendimiento** que se consolidan en un dashboard unificado. Cada métrica es calculada por un módulo independiente que genera archivos Excel con formato estandarizado.
 
 **Repositorio GitHub:** https://github.com/EdVeralli/Metricas_Boti_Mensual
 
+### Características Principales
+
+- ✅ **9 módulos independientes** que calculan 10 métricas diferentes
+- ✅ **Configuración centralizada** a través de `config_fechas.txt`
+- ✅ **Ejecución automatizada** con `run_all.py`
+- ✅ **Consolidación automática** de todas las métricas en un dashboard único
+- ✅ **Integración con AWS Athena** para procesamiento de big data
+- ✅ **Formato Excel estandarizado** compatible con reportes institucionales
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+### Flujo de Trabajo General
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. CONFIGURACIÓN                                           │
+│     config_fechas.txt (MES=12, AÑO=2025)                   │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  2. EJECUCIÓN DE MÓDULOS (run_all.py)                      │
+│     ├─ Usuarios_Conversaciones      → D2, D3               │
+│     ├─ Pushes_Enviadas              → D6                   │
+│     ├─ Sesiones_Abiertas_Pushes     → D4                   │
+│     ├─ Sesiones_Alcanzadas_Pushes   → D5                   │
+│     ├─ No_Entendidos                → D13                  │
+│     │  ├─ 1. athena_connector.py (descarga CSVs)          │
+│     │  └─ 2. No_Entendidos.py (calcula métrica)           │
+│     ├─ Feedback_Efectividad         → D14                  │
+│     ├─ Feedback_CES                 → D15                  │
+│     ├─ Feedback_CSAT                → D16                  │
+│     └─ Metricas_Boti_Disponibilidad → D17                  │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  3. CONSOLIDACIÓN (consolidar_excel.py)                    │
+│     Genera: Boti_Consolidado_diciembre_2025.xlsx           │
+│     Con todas las métricas unificadas                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### Componentes del Sistema
 
-#### 1. `athena_connector.py`
-**Función:** Descarga datos desde AWS Athena
+#### 1. **config_fechas.txt** (Configuración Centralizada)
+- Ubicación: Raíz del repositorio
+- Define el período a procesar (mes completo o rango personalizado)
+- Compartido por todos los módulos
 
-**Características:**
-- Ejecuta 3 queries SQL automáticamente (Mensajes, Clicks, Botones)
-- Manejo automático de expiración de tokens AWS
-- Reintentos automáticos en caso de error
-- Muestra progreso en tiempo real
+#### 2. **run_all.py** (Orquestador Maestro)
+- Ejecuta los 9 módulos secuencialmente
+- Verifica credenciales AWS
+- Muestra progreso y resumen de ejecución
+- Duración total: 30-60 minutos
 
-**Duración:** 10-20 minutos
+#### 3. **Módulos Independientes** (9 carpetas)
+- Cada módulo calcula una o más métricas específicas
+- Genera Excel con estructura de dashboard estandarizada
+- Llena solo sus celdas correspondientes (D2-D17)
 
-#### 2. `No_Entendidos.py`
-**Función:** Calcula métricas de No Entendimiento
-
-**Características:**
-- Procesamiento optimizado (PASO 6: 60 min → 2 seg)
-- Genera JSON + 2 archivos Excel
-- Filtrado automático de testers
-- Dashboard con 17 indicadores
-
-**Duración:** 20-30 minutos
-
-### Flujo de Trabajo
-
-```
-config_fechas.txt  →  athena_connector.py  →  No_Entendidos.py
-     (MES/AÑO)            (descarga CSVs)        (calcula métricas)
-                                                   ↓
-                                          JSON + 2 Excel en output/
-```
+#### 4. **consolidar_excel.py** (Generador de Dashboard Unificado)
+- Lee todos los Excel de los módulos
+- Extrae las métricas de cada celda
+- Genera un único dashboard consolidado
+- Ubicación: Raíz del repositorio
 
 ---
 
@@ -80,22 +115,13 @@ aws-azure-login
 ### Librerías Python
 
 ```bash
-pip install boto3 awswrangler pandas numpy openpyxl
+pip install boto3 awswrangler pandas numpy openpyxl selenium
 ```
 
-O con archivo requirements.txt:
+O con archivo `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
-```
-
-**Contenido de requirements.txt:**
-```
-boto3>=1.26.0
-awswrangler>=2.19.0
-pandas>=1.5.0
-numpy>=1.23.0
-openpyxl>=3.0.0
 ```
 
 ### Accesos AWS
@@ -103,6 +129,7 @@ openpyxl>=3.0.0
 - **Workgroup:** Production-caba-piba-athena-boti-group
 - **Database:** caba-piba-consume-zone-db
 - **Rol:** PIBAConsumeBoti
+- **Region:** us-east-1
 
 ---
 
@@ -115,21 +142,10 @@ git clone https://github.com/EdVeralli/Metricas_Boti_Mensual.git
 cd Metricas_Boti_Mensual
 ```
 
-O descargar desde GitHub:
-```
-https://github.com/EdVeralli/Metricas_Boti_Mensual
-```
-
-Y descomprimir en:
-```
-C:\GCBA\Metricas_Boti_Mensual\
-```
-
 ### 2. Instalar Dependencias
 
 ```bash
-cd No_Entendidos
-pip install boto3 awswrangler pandas numpy openpyxl
+pip install -r requirements.txt
 ```
 
 ### 3. Configurar AWS Azure Login
@@ -145,30 +161,13 @@ Completar con:
 - **Azure App ID URI:** (proporcionado por IT)
 - **Default Role ARN:** PIBAConsumeBoti
 
-### 4. Verificar Estructura de Directorios
-
-```
-Metricas_Boti_Mensual/                 ← Raíz del repo
-├── config_fechas.txt                  ← Debe existir aquí
-└── No_Entendidos/                     ← Tu ubicación de trabajo
-    ├── athena_connector.py
-    ├── No_Entendidos.py
-    ├── Mensajes.sql                   ← Queries SQL (en la raíz de No_Entendidos/)
-    ├── Clicks.sql
-    ├── Botones.sql
-    ├── testers.csv                    (opcional)
-    └── Actualizacion_Lista_Blanca.csv (opcional)
-```
-
-**Nota:** Las carpetas `temp/` y `output/` se crean automáticamente.
-
 ---
 
 ## 📝 Configuración
 
 ### Archivo: `config_fechas.txt` (Raíz del Repositorio)
 
-Este archivo está en **la raíz del repositorio** (`Metricas_Boti_Mensual/config_fechas.txt`) y es **compartido por todos los proyectos de métricas**.
+Este archivo es **compartido por todos los módulos** y define el período a procesar.
 
 **Ubicación:**
 ```
@@ -176,71 +175,45 @@ Metricas_Boti_Mensual/
 └── config_fechas.txt              ← ESTE ARCHIVO
 ```
 
-**Por qué está en la raíz:**
-- ✅ Todos los proyectos de métricas lo comparten
-- ✅ Configuras el período una sola vez
-- ✅ Garantiza consistencia entre reportes
-
 ### Opciones de Configuración
 
 #### Opción 1: Mes Completo (Recomendado)
 
-Editar `Metricas_Boti_Mensual/config_fechas.txt`:
-
-```
+```ini
 MES=12
 AÑO=2025
 ```
 
-Esto procesará **todo el mes** de diciembre 2025.
+Procesa todo el mes de diciembre 2025.
 
 #### Opción 2: Rango Personalizado
 
-```
+```ini
 FECHA_INICIO=2025-12-01
 FECHA_FIN=2025-12-15
 ```
 
-Esto procesará **solo las primeras 2 semanas** de diciembre.
+Procesa solo las primeras 2 semanas de diciembre.
 
-**Nota:** Si especificas FECHA_INICIO y FECHA_FIN, se ignorarán MES y AÑO.
-
-### Cómo Editar el Archivo
-
-**Desde la raíz del repo:**
-```bash
-cd C:\GCBA\Metricas_Boti_Mensual
-notepad config_fechas.txt
-```
-
-**Desde No_Entendidos/:**
-```bash
-cd C:\GCBA\Metricas_Boti_Mensual\No_Entendidos
-notepad ..\config_fechas.txt
-```
+**Nota:** Si especificas `FECHA_INICIO` y `FECHA_FIN`, se ignorarán `MES` y `AÑO`.
 
 ---
 
 ## 🚀 Uso - Guía Rápida
 
-### Ejecución Mensual (3 Pasos)
+### Ejecución Mensual Completa (3 Pasos)
 
-#### PASO 1: Configurar Mes
+#### PASO 1: Configurar Período
 
-Editar `config_fechas.txt` en **la raíz del repositorio**:
+Editar `config_fechas.txt`:
 
 ```bash
-# Opción A: Desde la raíz
 cd C:\GCBA\Metricas_Boti_Mensual
 notepad config_fechas.txt
-
-# Opción B: Desde No_Entendidos/
-cd C:\GCBA\Metricas_Boti_Mensual\No_Entendidos
-notepad ..\config_fechas.txt
 ```
 
 Contenido:
-```
+```ini
 MES=12
 AÑO=2025
 ```
@@ -251,368 +224,376 @@ AÑO=2025
 aws-azure-login --profile default --mode=gui
 ```
 
-Esto abre el navegador para autenticación. Completar el login.
+Esto abre el navegador para autenticación.
 
-#### PASO 3A: Descargar Datos
+#### PASO 3: Ejecutar Todos los Módulos
 
 ```bash
-cd C:\GCBA\Metricas_Boti_Mensual\No_Entendidos
-python athena_connector.py
+python run_all.py
 ```
 
 **Resultado esperado:**
 ```
-✅ TODAS LAS QUERIES EJECUTADAS EXITOSAMENTE
-📂 Archivos generados:
-   ├─ temp/mensajes_temp.csv      (13 GB)
-   ├─ temp/clicks_temp.csv         (9 GB)
-   └─ temp/botones_temp.csv        (3 GB)
+================================================================================
+  SCRIPT MAESTRO - Metricas_Boti_Mensual
+================================================================================
+
+Ejecutará los siguientes módulos:
+  1. Usuarios y Conversaciones (D2, D3)
+  2. Pushes Enviadas (D6)
+  3. Sesiones Abiertas por Pushes (D4)
+  4. Sesiones Alcanzadas por Pushes (D5)
+  5. No Entendimiento (D13)
+  6. Feedback - Efectividad (D14)
+  7. Feedback - CES (D15)
+  8. Feedback - CSAT (D16)
+  9. Disponibilidad WhatsApp (D17)
+
+⚠️  IMPORTANTE: Este proceso puede tardar varios minutos
+
+[Proceso de ejecución...]
+
+================================================================================
+RESUMEN DE EJECUCIÓN
+================================================================================
+📊 Total de módulos: 9
+✅ Exitosos: 9
+❌ Fallidos: 0
+⏱️  Tiempo total: 45.3 minutos
+
+🎉 ¡TODOS LOS MÓDULOS SE EJECUTARON EXITOSAMENTE!
+
+💡 Próximo paso: Ejecutar el consolidador de Excel
+   python consolidar_excel.py
 ```
 
-**Duración:** 10-20 minutos
+**Duración:** 30-60 minutos (dependiendo de la cantidad de datos)
 
-#### PASO 3B: Calcular Métricas
+#### PASO 4: Consolidar Resultados
 
 ```bash
-python No_Entendidos.py
+python consolidar_excel.py
 ```
 
 **Resultado esperado:**
 ```
-📦 ARCHIVOS GENERADOS:
-  [1] JSON:               metricas_boti_diciembre_2025.json
-  [2] Excel Detallado:    output/no_entendimiento_detalle_diciembre_2025.xlsx
-  [3] Dashboard Master:   output/no_entendimiento_diciembre_2025.xlsx
+================================================================================
+  CONSOLIDADOR DE EXCEL - Metricas_Boti_Mensual
+================================================================================
 
-  🎯 D13 (No Entendimiento): 11.70%
+📋 Módulos a consolidar:
+  • Usuarios y Conversaciones (D2, D3)
+  • Sesiones Abiertas (D4)
+  • Sesiones Alcanzadas (D5)
+  • Pushes Enviadas (D6)
+  • No Entendimiento (D13)
+  • Feedback - Efectividad (D14)
+  • Feedback - CES (D15)
+  • Feedback - CSAT (D16)
+  • Disponibilidad WhatsApp (D17)
+
+[Proceso de consolidación...]
+
+✅ Dashboard consolidado creado: Boti_Consolidado_diciembre_2025.xlsx
+
+================================================================================
+RESUMEN DE MÉTRICAS CONSOLIDADAS
+================================================================================
+
+📊 Métricas extraídas:
+  ✅ Conversaciones (D2): 125,450
+  ✅ Usuarios (D3): 45,823
+  ✅ Sesiones Abiertas (D4): 12,345
+  ✅ Sesiones Alcanzadas (D5): 15,678
+  ✅ Pushes Enviadas (D6): 45,890
+  ✅ No Entendimiento (D13): 11.70%
+  ✅ Efectividad (D14): 87.5%
+  ✅ CES (D15): 2.35
+  ✅ CSAT (D16): 4.2
+  ✅ Availability (D17): 99.8%
+
+📈 Total de métricas: 10
+✅ Con valor: 10
+⚠️  Sin valor: 0
+
+✨ CONSOLIDACIÓN COMPLETADA
 ```
-
-**Duración:** 20-30 minutos
 
 ---
 
-## 📁 Archivos Generados
+## 📊 Módulos Implementados
 
-### 1. JSON (Raíz del proyecto)
+### Resumen de Módulos
 
-**Archivo:** `metricas_boti_diciembre_2025.json`
+| # | Módulo | Carpeta | Celda(s) | Métrica | AWS |
+|---|--------|---------|----------|---------|-----|
+| 1 | Usuarios y Conversaciones | `Metricas_Boti_Conversaciones_Usuarios/` | D2, D3 | Conversaciones, Usuarios únicos | ✅ |
+| 2 | Pushes Enviadas | `Pushes_Enviadas/` | D6 | Mensajes push enviados | ✅ |
+| 3 | Sesiones Abiertas | `Sesiones_Abiertas_Pushes/` | D4 | Sesiones iniciadas por push | ✅ |
+| 4 | Sesiones Alcanzadas | `Sesiones_alcanzadas_pushes/` | D5 | Sesiones que recibieron push | ✅ |
+| 5 | No Entendimiento | `No_Entendidos/` | D13 | Tasa de no comprensión | ✅ |
+| 6 | Efectividad | `Feedback_Efectividad/` | D14 | % usuarios que lograron objetivo | ✅ |
+| 7 | CES | `Feedback_CES/` | D15 | Customer Effort Score | ✅ |
+| 8 | CSAT | `Feedback_CSAT/` | D16 | Customer Satisfaction | ✅ |
+| 9 | Disponibilidad | `Metricas_Boti_Disponibilidad/` | D17 | Uptime del servidor WhatsApp | ❌ |
 
-**Contenido:**
-```json
-{
-  "periodo": "diciembre 2025",
-  "modo": "mes",
-  "fecha_inicio": "2025-12-01 00:00:00",
-  "fecha_fin": "2026-01-01 00:00:00",
-  "metricas": {
-    "one": 0.651,
-    "click": 0.130,
-    "texto": 0.048,
-    "abandonos": 0.054,
-    "nada": 0.055,
-    "ne": 0.062,
-    "letra": 0.001
-  },
-  "timestamp": "2026-01-13T15:30:00"
-}
-```
+### Descripción de Cada Módulo
 
-**Uso:** Datos crudos para análisis programático, integración con otros sistemas.
+#### 1. Usuarios y Conversaciones
+**Script:** `Usuarios_Conversaciones.py`
+**Query:** Cuenta sesiones únicas y usuarios únicos
+**Duración:** ~2 minutos
+
+#### 2. Pushes Enviadas
+**Script:** `Pushes_Enviadas.py`
+**Query:** Cuenta mensajes enviados con formato Template
+**Duración:** ~3 minutos
+
+#### 3. Sesiones Abiertas por Pushes
+**Script:** `Sesiones_Abiertas_porPushes.py`
+**Query:** Sesiones con `starting_cause = 'WhatsAppTemplate'`
+**Duración:** ~2 minutos
+
+#### 4. Sesiones Alcanzadas por Pushes
+**Script:** `Sesiones_Alcanzadas.py`
+**Query:** Sesiones que recibieron al menos un push
+**Duración:** ~2 minutos
+
+#### 5. No Entendimiento (Módulo Complejo)
+**Scripts:**
+1. `athena_connector.py` - Descarga 3 CSVs grandes (~25 GB)
+2. `No_Entendidos.py` - Procesa y calcula D13
+
+**Duración:**
+- athena_connector: 10-20 minutos
+- No_Entendidos: 20-30 minutos
+
+**Métricas Calculadas:**
+- OneShots: ~65%
+- Clicks: ~13%
+- Texto: ~5%
+- Abandonos: ~5%
+- Nada: ~6%
+- NE (No Entendidos): ~6%
+- Letra: ~0.1%
+- **D13 = Nada + NE ≈ 11-12%**
+
+#### 6. Feedback - Efectividad
+**Script:** `Feedback_Efectividad.py`
+**Query:** Tasa de transacciones completadas
+**Duración:** ~2 minutos
+
+#### 7. Feedback - CES (Customer Effort Score)
+**Script:** `Feedback_CES.py`
+**Query:** Promedio ponderado de facilidad de uso (1-5)
+**Duración:** ~2 minutos
+
+#### 8. Feedback - CSAT (Customer Satisfaction)
+**Script:** `Feedback_CSAT.py`
+**Query:** Promedio de satisfacción del usuario (1-5)
+**Duración:** ~2 minutos
+
+#### 9. Disponibilidad WhatsApp
+**Script:** `WhatsApp_Availability.py`
+**Tecnología:** Web scraping con Selenium
+**Fuente:** https://metastatus.com/whatsapp-business-api
+**Duración:** ~1 minuto
 
 ---
 
-### 2. Excel Detallado (Carpeta output/)
+## 📈 Dashboard de Métricas
 
-**Archivo:** `output/no_entendimiento_detalle_diciembre_2025.xlsx`
+### Estructura del Dashboard Consolidado
 
-**Estructura:**
+El dashboard final contiene **17 filas** de indicadores. **10 están implementadas** (D2-D6, D13-D17), las restantes (D7-D12) son responsabilidad de otro equipo.
 
-```
-╔════════════════════════════════════════════════╗
-║  NO ENTENDIMIENTO - Análisis Detallado        ║
-║  Período: diciembre 2025                      ║
-╚════════════════════════════════════════════════╝
+| Fila | Indicador | Descripción | Valor | Estado |
+|------|-----------|-------------|-------|--------|
+| **1** | **Headers** | Indicador / Descripción / Período | **dic-25** | **Header** |
+| **2** | Conversaciones | Q Conversaciones | 125,450 | ✅ Implementado |
+| **3** | Usuarios | Q Usuarios únicos | 45,823 | ✅ Implementado |
+| **4** | Sesiones abiertas por Pushes | Sesiones iniciadas con push | 12,345 | ✅ Implementado |
+| **5** | Sesiones Alcanzadas por Pushes | Sesiones que recibieron push | 15,678 | ✅ Implementado |
+| **6** | Mensajes Pushes Enviados | Q de mensajes push | 45,890 | ✅ Implementado |
+| **7** | Contenidos en Botmaker | Contenidos activos | - | ⚠️ Otro equipo |
+| **8** | Contenidos Prendidos para el USUARIO | Contenidos visibles | - | ⚠️ Otro equipo |
+| **9** | Interacciones | Q Interacciones | - | ⚠️ Otro equipo |
+| **10** | Trámites, solicitudes y turnos | Q Trámites disponibles | - | ⚠️ Otro equipo |
+| **11** | Contenidos más consultados | Top 10 | - | ⚠️ Otro equipo |
+| **12** | Derivaciones | Q Derivaciones | - | ⚠️ Otro equipo |
+| **13** | No entendimiento | Performance motor IA | 11.70% | ✅ Implementado |
+| **14** | Tasa de Efectividad | % usuarios que lograron objetivo | 87.5% | ✅ Implementado |
+| **15** | CES (Customer Effort Score) | Facilidad de interacción (1-5) | 2.35 | ✅ Implementado |
+| **16** | Satisfacción (CSAT) | Satisfacción usuario (1-5) | 4.2 | ✅ Implementado |
+| **17** | Uptime servidor | Disponibilidad WhatsApp | 99.8% | ✅ Implementado |
 
-CATEGORÍAS
-OneShots:     65.10%
-Clicks:       13.00%
-Texto:         4.80%
-Abandonos:     5.40%
-Nada:          5.50%
-NE:            6.20%
-Letra:         0.10%
-─────────────────────
-TOTAL:       100.00%
+### Cómo Funciona el Dashboard
 
-MÉTRICAS
-Resolución (One+Click+Texto):     82.90%
-Problemas (Abandonos+Letra):       5.50%
-
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ D13 - NO ENTENDIMIENTO:  11.70% ┃  ← Verde
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-```
-
-**Uso:** Reporte mensual detallado, análisis interno, presentaciones.
-
----
-
-### 3. Dashboard Master (Carpeta output/)
-
-**Archivo:** `output/no_entendimiento_diciembre_2025.xlsx`
-
-**Estructura:** Dashboard con 17 indicadores
-
-| Fila | Indicador | Descripción | Valor |
-|------|-----------|-------------|-------|
-| 1 | **Headers** | | **dic-25** |
-| 2 | Conversaciones | Q Conversaciones | (vacío) |
-| 3 | Usuarios | Q Usuarios únicos | (vacío) |
-| ... | ... | ... | ... |
-| **13** | **No entendimiento** | **Performance motor de búsqueda del nuevo modelo de IA** | **11.70%** |
-| 14 | Tasa de Efectividad | Mide el % de usuarios que lograron su objetivo | (vacío) |
-| 15 | CES | Mide la facilidad de interacción | (vacío) |
-| 16 | Satisfacción (CSAT) | Escala de 1 a 5 | (vacío) |
-| 17 | Uptime servidor | Disponibilidad del servidor | (vacío) |
-
-**Uso:** Dashboard consolidado, integración con otros scripts de métricas.
-
-**Nota:** Este script solo llena la fila 13 (No Entendimiento). Las otras filas se llenan con otros scripts del sistema.
-
-### Integración con Otros Proyectos
-
-El Dashboard Master está diseñado para consolidar métricas de **múltiples proyectos**:
-
-| Proyecto | Fila(s) que Llena |
-|----------|-------------------|
-| **No_Entendidos** | 13 - No entendimiento |
-| Metricas_Boti_Conversaciones_Usuarios | 2, 3 - Conversaciones, Usuarios |
-| Pushes_Enviadas | 6 - Mensajes Pushes Enviados |
-| Sesiones_Abiertas_Pushes | 4 - Sesiones abiertas por Pushes |
-| Sesiones_alcanzadas_pushes | 5 - Sesiones Alcanzadas por Pushes |
-| Feedback_Efectividad | 14 - Tasa de Efectividad |
-| Feedback_CES | 15 - CES (Customer Effort Score) |
-| Feedback_CSAT | 16 - Satisfacción (CSAT) |
-| Metricas_Boti_Disponibilidad | 17 - Uptime servidor |
-
-**Workflow Completo:**
-```bash
-# 1. Configurar mes en la raíz (UNA VEZ)
-cd C:\GCBA\Metricas_Boti_Mensual
-notepad config_fechas.txt
-
-# 2. Ejecutar cada proyecto (cada uno actualiza su fila)
-cd No_Entendidos
-python No_Entendidos.py              # → D13
-
-cd ..\Feedback_CSAT
-python feedback_csat.py               # → D16
-
-cd ..\Feedback_CES
-python feedback_ces.py                # → D15
-
-# etc.
-
-# Resultado: Dashboard con todas las métricas
-```
-
-**Importante:** Cada script:
-- ✅ Lee el Dashboard existente (si existe)
-- ✅ Actualiza **solo su fila**
-- ✅ Preserva las demás filas sin tocarlas
+1. **Cada módulo** crea un Excel con la **estructura completa** (17 filas)
+2. **Solo llena** las celdas que le corresponden (columna D)
+3. **El consolidador** lee todos los Excel y extrae los valores
+4. **Genera un único Excel** con todas las métricas unificadas
 
 ---
 
 ## 📂 Estructura del Proyecto
 
-### Repositorio Completo
-
 ```
-Metricas_Boti_Mensual/                 ← Repositorio raíz
+Metricas_Boti_Mensual/                          ← Repositorio raíz
 │
-├── config_fechas.txt                  ← Configuración compartida (EDITAR ESTE)
+├── README.md                                   ← Este documento
+├── config_fechas.txt                           ← Configuración centralizada
+├── run_all.py                                  ← Script maestro
+├── consolidar_excel.py                         ← Consolidador de métricas
+├── diagnosticar_excel.py                       ← Herramienta de diagnóstico
 │
-├── No_Entendidos/                     ← Este proyecto
-│   ├── README.md                      ← Este documento
-│   ├── athena_connector.py            ← Programa 1: Descarga de datos
-│   ├── No_Entendidos.py               ← Programa 2: Cálculo de métricas
-│   │
-│   ├── Mensajes.sql                   ← Queries SQL para Athena
+├── Boti_Consolidado_diciembre_2025.xlsx        ← Dashboard final (generado)
+│
+├── Metricas_Boti_Conversaciones_Usuarios/      ← Módulo 1
+│   ├── Usuarios_Conversaciones.py
+│   ├── output/
+│   │   └── usuarios_conversaciones_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── Pushes_Enviadas/                            ← Módulo 2
+│   ├── Pushes_Enviadas.py
+│   ├── output/
+│   │   └── mensajes_pushes_enviados_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── Sesiones_Abiertas_Pushes/                   ← Módulo 3
+│   ├── Sesiones_Abiertas_porPushes.py
+│   ├── output/
+│   │   └── sesiones_abiertas_pushes_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── Sesiones_alcanzadas_pushes/                 ← Módulo 4
+│   ├── Sesiones_Alcanzadas.py
+│   ├── output/
+│   │   └── sesiones_alcanzadas_pushes_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── No_Entendidos/                              ← Módulo 5 (complejo)
+│   ├── README.md                               ← Documentación detallada
+│   ├── athena_connector.py                     ← Paso 1: Descarga datos
+│   ├── No_Entendidos.py                        ← Paso 2: Calcula métricas
+│   ├── Mensajes.sql                            ← Queries SQL
 │   ├── Clicks.sql
 │   ├── Botones.sql
-│   │
-│   ├── testers.csv                    ← Archivos auxiliares (opcionales)
-│   ├── Actualizacion_Lista_Blanca.csv
-│   │
-│   ├── temp/                          ← Archivos temporales (auto-creado)
-│   │   ├── mensajes_temp.csv          (13 GB - se puede borrar después)
-│   │   ├── clicks_temp.csv            (9 GB - se puede borrar después)
-│   │   └── botones_temp.csv           (3 GB - se puede borrar después)
-│   │
-│   ├── output/                        ← Archivos finales (auto-creado)
+│   ├── testers.csv                             (opcional)
+│   ├── Actualizacion_Lista_Blanca.csv          (opcional)
+│   ├── temp/                                   ← CSVs temporales (25 GB)
+│   │   ├── mensajes_temp.csv
+│   │   ├── clicks_temp.csv
+│   │   └── botones_temp.csv
+│   ├── output/                                 ← Resultados finales
 │   │   ├── no_entendimiento_detalle_diciembre_2025.xlsx
 │   │   └── no_entendimiento_diciembre_2025.xlsx
-│   │
-│   └── metricas_boti_diciembre_2025.json  ← JSON con datos crudos
+│   ├── metricas_boti_diciembre_2025.json       ← Datos crudos
+│   └── requirements.txt
 │
-├── Feedback_CES/                      ← Otros proyectos de métricas
-├── Feedback_CSAT/
-├── Feedback_Efectividad/
-├── Metricas_Boti_Conversaciones_Usuarios/
-├── Metricas_Boti_Disponibilidad/
-├── Pushes_Enviadas/
-├── Sesiones_Abiertas_Pushes/
-└── Sesiones_alcanzadas_pushes/
-```
-
-### Archivos Opcionales (No_Entendidos/)
-
-Si existen, el script los usará automáticamente:
-
-```
-No_Entendidos/
-├── testers.csv                        ← Lista de usuarios de prueba (opcional)
-└── Actualizacion_Lista_Blanca.csv     ← Intenciones válidas (opcional)
-```
-
-### Nota Importante
-
-**Todos los proyectos** comparten el mismo `config_fechas.txt` en la raíz del repositorio. Esto permite:
-- ✅ Configurar el período **una sola vez**
-- ✅ Ejecutar múltiples scripts de métricas para el mismo mes
-- ✅ Mantener consistencia entre todos los reportes
-
----
-
-## 📊 Métricas Calculadas
-
-### Métricas Principales
-
-| Métrica | Descripción | Típico |
-|---------|-------------|--------|
-| **OneShots** | Consultas resueltas directamente con un botón | ~65% |
-| **Clicks** | Consultas resueltas con clicks en búsqueda | ~13% |
-| **Texto** | Consultas resueltas escribiendo texto | ~5% |
-| **Abandonos** | Sesiones abandonadas sin resolver | ~5% |
-| **Nada** | Sin respuesta válida del sistema | ~6% |
-| **NE (No Entendidos)** | Score ≤ 5.36 (no entendió la consulta) | ~6% |
-| **Letra** | Letra inexistente en WhatsApp | ~0.1% |
-
-### Métricas Agregadas
-
-```
-Resolución = OneShots + Clicks + Texto
-           ≈ 82-85%
-
-Problemas = Abandonos + Letra
-          ≈ 5-6%
-
-D13 = Nada + NE  ← MÉTRICA PRINCIPAL
-    ≈ 11-12%
-```
-
-### Métrica D13 - No Entendimiento
-
-**Fórmula:**
-```
-D13 = % Nada + % NE
-```
-
-**Interpretación:**
-
-| D13 | Significado |
-|-----|-------------|
-| < 10% | ✅ Excelente - El chatbot entiende muy bien |
-| 10-15% | ⚠️ Aceptable - Hay margen de mejora |
-| > 15% | ❌ Problema - Requiere atención urgente |
-
-**Objetivo:** Reducir D13 mes a mes para mejorar la comprensión del chatbot.
-
----
-
-## 📘 Documentación Técnica
-
-### athena_connector.py
-
-#### Funcionalidades Principales
-
-1. **Lectura Automática de Configuración**
-   - Lee `config_fechas.txt`
-   - Soporta mes completo o rango personalizado
-   - Valida formato de fechas
-
-2. **Ejecución de Queries**
-   - 3 queries SQL pre-configuradas
-   - Reemplazo automático de variables de fecha
-   - Monitoreo de progreso en tiempo real
-
-3. **Manejo de Tokens AWS**
-   - Detección automática de token expirado
-   - Sistema de reintentos (3 intentos)
-   - Instrucciones claras para renovación manual
-   - Recarga de credenciales sin reiniciar
-
-4. **Descarga de Resultados**
-   - Descarga directa desde S3
-   - Archivos guardados en `temp/`
-   - Muestra tamaño de archivos descargados
-
-#### Parámetros Configurables
-
-```python
-CONFIG = {
-    'region': 'us-east-1',
-    'workgroup': 'Production-caba-piba-athena-boti-group',
-    'database': 'caba-piba-consume-zone-db'
-}
+├── Feedback_Efectividad/                       ← Módulo 6
+│   ├── Feedback_Efectividad.py
+│   ├── output/
+│   │   └── feedback_efectividad_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── Feedback_CES/                               ← Módulo 7
+│   ├── Feedback_CES.py
+│   ├── output/
+│   │   ├── feedback_ces_detalle_diciembre_2025.xlsx
+│   │   └── feedback_ces_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+├── Feedback_CSAT/                              ← Módulo 8
+│   ├── Feedback_CSAT.py
+│   ├── output/
+│   │   ├── feedback_csat_detalle_diciembre_2025.xlsx
+│   │   └── feedback_csat_diciembre_2025.xlsx
+│   └── requirements.txt
+│
+└── Metricas_Boti_Disponibilidad/               ← Módulo 9
+    ├── WhatsApp_Availability.py
+    ├── output/
+    │   └── whatsapp_availability_20251215_143000.xlsx
+    └── requirements.txt
 ```
 
 ---
 
-### No_Entendidos.py
+## 🔧 Scripts Principales
 
-#### Funcionalidades Principales
+### 1. run_all.py
 
-1. **Lectura de Configuración**
-   - Busca `config_fechas.txt` en múltiples ubicaciones
-   - Soporta ejecución desde cualquier directorio
-   - Validación de fechas
+**Función:** Orquestador maestro que ejecuta todos los módulos secuencialmente.
 
-2. **Procesamiento de Datos**
-   - Carga por chunks (optimizado para RAM)
-   - Filtrado automático de testers
-   - Filtrado de intenciones según lista blanca
-
-3. **Optimización PASO 6**
-   - Eliminación de mensajes consecutivos
-   - Método vectorizado (shift)
-   - 60 minutos → 2 segundos (100x más rápido)
-
-4. **Generación de Archivos**
-   - JSON con datos crudos
-   - Excel detallado con formato
-   - Dashboard Master con 17 indicadores
-
-#### Pasos del Proceso
-
-```
-PASO 1: Configuración
-PASO 2: Archivos auxiliares (testers, lista blanca)
-PASO 3: Procesar mensajes (10-15 min)
-PASO 4: Procesar clicks (5-10 min)
-PASO 5: Procesar botones (2-5 min)
-PASO 6: Limpieza (2 segundos - optimizado)
-PASO 7: Análisis y cálculo de métricas (1-2 min)
+**Uso:**
+```bash
+python run_all.py
 ```
 
-#### Constantes del Sistema
+**Características:**
+- ✅ Verifica credenciales AWS antes de empezar
+- ✅ Lee `config_fechas.txt` y valida configuración
+- ✅ Ejecuta los 9 módulos en orden
+- ✅ Para el módulo **No_Entendidos**, ejecuta primero `athena_connector.py` y luego `No_Entendidos.py`
+- ✅ Muestra progreso en tiempo real
+- ✅ Genera resumen final con métricas de ejecución
+- ✅ Indica si todos los módulos se ejecutaron exitosamente
 
-```python
-RULE_NE = 'PLBWX5XYGQ2B3GP7IN8Q-nml045fna3@b.m-1669990832420'
-INTENT_NADA = 'RuleBuilder:PLBWX5XYGQ2B3GP7IN8Q-alfafc@gmail.com-1536777380652'
-SCORE_NE_THRESHOLD = 5.36
-CHUNK_SIZE = 50000
+**Módulos ejecutados en orden:**
+1. Usuarios y Conversaciones
+2. Pushes Enviadas
+3. Sesiones Abiertas por Pushes
+4. Sesiones Alcanzadas por Pushes
+5. No Entendimiento (athena_connector.py → No_Entendidos.py)
+6. Feedback - Efectividad
+7. Feedback - CES
+8. Feedback - CSAT
+9. Disponibilidad WhatsApp
+
+**Duración Total:** 30-60 minutos
+
+---
+
+### 2. consolidar_excel.py
+
+**Función:** Consolida todos los Excel parciales en un dashboard único.
+
+**Uso:**
+```bash
+python consolidar_excel.py
 ```
+
+**Proceso:**
+1. Busca los Excel más recientes en cada carpeta `output/`
+2. Lee las métricas específicas de cada Excel
+3. Crea un dashboard consolidado con todas las métricas
+4. Guarda el archivo en la raíz: `Boti_Consolidado_[periodo].xlsx`
+
+**Características:**
+- ✅ Busca automáticamente archivos más recientes
+- ✅ Excluye archivos `*_detalle_*`
+- ✅ Aplica formato y estilos al dashboard
+- ✅ Muestra resumen de métricas extraídas
+
+**Archivo generado:**
+```
+Boti_Consolidado_diciembre_2025.xlsx
+```
+
+---
+
+### 3. diagnosticar_excel.py
+
+**Función:** Herramienta de diagnóstico para verificar archivos Excel.
+
+**Uso:**
+```bash
+python diagnosticar_excel.py
+```
+
+Ayuda a identificar problemas con archivos Excel corruptos o mal formateados.
 
 ---
 
@@ -626,40 +607,65 @@ CHUNK_SIZE = 50000
 ```
 
 **Solución:**
-1. Abrir **otra terminal** (no cerrar la actual)
-2. Ejecutar: `aws-azure-login --profile default --mode=gui`
-3. Completar el login en el navegador
-4. Volver a la terminal original
-5. Presionar **ENTER**
+```bash
+# En otra terminal
+aws-azure-login --profile default --mode=gui
 
-El script detectará automáticamente las nuevas credenciales y continuará.
+# El script detectará las nuevas credenciales automáticamente
+```
 
 ---
 
-### 2. Error de Memoria RAM
+### 2. Error en Módulo No_Entendidos
+
+**Síntoma:**
+```
+[ERROR] No se encuentra mensajes_temp.csv
+```
+
+**Causa:** `athena_connector.py` no se ejecutó o falló.
+
+**Solución:**
+El `run_all.py` ahora ejecuta `athena_connector.py` automáticamente antes de `No_Entendidos.py`. Si ejecutas manualmente, asegúrate de ejecutar primero:
+
+```bash
+cd No_Entendidos
+python athena_connector.py
+python No_Entendidos.py
+```
+
+---
+
+### 3. Consolidador No Encuentra Archivos
+
+**Síntoma:**
+```
+❌ No se encontraron archivos en [módulo]
+```
+
+**Causa:** El módulo no se ejecutó correctamente.
+
+**Solución:**
+1. Verificar que `run_all.py` completó todos los módulos exitosamente
+2. Revisar que existen archivos en las carpetas `output/` de cada módulo
+3. Ejecutar el módulo faltante manualmente
+
+---
+
+### 4. Error de Memoria RAM
 
 **Síntoma:**
 ```
 Unable to allocate X.XX GiB for an array
 ```
 
-**Causa:** No hay suficiente RAM disponible (se necesitan ~8-16 GB)
+**Causa:** No hay suficiente RAM (se necesitan ~8-16 GB)
 
-**Soluciones:**
-
-**Opción A - Liberar memoria:**
+**Solución:**
 ```
 1. Cerrar Chrome/Edge/Firefox
 2. Cerrar Excel y otros programas pesados
 3. Reiniciar el script
-```
-
-**Opción B - Aumentar memoria virtual:**
-```
-1. Panel de Control → Sistema → Configuración avanzada
-2. Opciones avanzadas → Rendimiento → Configuración
-3. Opciones avanzadas → Memoria virtual → Cambiar
-4. Aumentar tamaño del archivo de paginación
 ```
 
 **Requerimientos:**
@@ -668,359 +674,26 @@ Unable to allocate X.XX GiB for an array
 
 ---
 
-### 3. No Se Encuentra config_fechas.txt
+### 5. No Se Encuentra config_fechas.txt
 
 **Síntoma:**
 ```
-[ERROR] No se encuentra config_fechas.txt en ninguna ubicación
+[ERROR] No se encuentra config_fechas.txt
 ```
-
-**Causa:** El archivo no existe en la raíz del repositorio.
 
 **Solución:**
 
-El archivo **debe estar en la raíz** del repositorio:
-
-```
-Metricas_Boti_Mensual/
-└── config_fechas.txt              ← AQUÍ
-```
-
-**Crear el archivo:**
+Crear el archivo en la **raíz del repositorio**:
 
 ```bash
-# Desde la raíz del repo
 cd C:\GCBA\Metricas_Boti_Mensual
 echo MES=12 > config_fechas.txt
 echo AÑO=2025 >> config_fechas.txt
 ```
 
-**El programa lo busca en:**
-```
-1. ../config_fechas.txt           (un nivel arriba - RAÍZ DEL REPO)
-2. config_fechas.txt              (directorio actual)
-3. ../../config_fechas.txt        (dos niveles arriba)
-```
-
-Si el archivo está en otro lugar, muévelo a la raíz:
-```bash
-move <ubicación-actual>\config_fechas.txt C:\GCBA\Metricas_Boti_Mensual\
-```
-
----
-
-### 4. Queries SQL No Encontradas
-
-**Síntoma:**
-```
-[ERROR] No se encuentra Mensajes.sql
-```
-
-**Solución:**
-
-Verificar que existen los 3 archivos SQL **en la carpeta No_Entendidos/** (no en una subcarpeta):
-
-```
-No_Entendidos/
-├── Mensajes.sql      ← AQUÍ
-├── Clicks.sql        ← AQUÍ
-└── Botones.sql       ← AQUÍ
-```
-
-Los archivos SQL deben estar **al mismo nivel** que `athena_connector.py` y `No_Entendidos.py`.
-
-Si faltan, descargarlos del repositorio:
-```
-https://github.com/EdVeralli/Metricas_Boti_Mensual/tree/main/No_Entendidos
-```
-
----
-
-### 5. Archivos Auxiliares No Encontrados
-
-**Síntoma:**
-```
-⚠️  Archivo testers.csv no encontrado
-⚠️  Archivo Actualizacion_Lista_Blanca.csv no encontrado
-```
-
-**Solución:**
-
-Esto es **normal**. Los archivos son **opcionales**:
-
-- **Sin testers.csv:** Procesará TODOS los usuarios (incluyendo cuentas de prueba)
-- **Sin Actualizacion_Lista_Blanca.csv:** Procesará TODAS las intenciones
-
-Si quieres usarlos, colócalos en el directorio raíz:
-```
-No_Entendidos/
-├── testers.csv
-└── Actualizacion_Lista_Blanca.csv
-```
-
----
-
-### 6. Script Muy Lento
-
-**Síntoma:** El PASO 3 tarda más de 30 minutos
-
-**Causas posibles:**
-- Disco duro lento (usar SSD)
-- Poca RAM (cerrar programas)
-- CSV muy grandes (diciembre típicamente es más pesado)
-
-**Solución:**
-- Verificar espacio en disco (necesitas ~30 GB libres)
-- Cerrar todos los programas que no uses
-- Ejecutar en horario de baja carga en AWS (madrugada)
-
----
-
-### 7. Error al Crear Carpeta output/
-
-**Síntoma:**
-```
-PermissionError: [Errno 13] Permission denied: 'output'
-```
-
-**Solución:**
-```bash
-# Dar permisos a la carpeta
-mkdir output
-# O ejecutar como administrador
-```
-
----
-
-## 📊 Ejemplo de Ejecución Completa
-
-### Escenario: Métricas de Diciembre 2025
-
-```powershell
-# ========================
-# PASO 1: CONFIGURACIÓN
-# ========================
-
-# Editar config_fechas.txt en la raíz del repo
-PS C:\GCBA\Metricas_Boti_Mensual> notepad config_fechas.txt
-# Editar:
-# MES=12
-# AÑO=2025
-
-# ========================
-# PASO 2: LOGIN AWS
-# ========================
-
-PS C:\GCBA\Metricas_Boti_Mensual> aws-azure-login --profile default --mode=gui
-[Navegador se abre]
-[Completar login]
-Assuming role...
-✓ Success
-
-# ========================
-# PASO 3: DESCARGAR DATOS
-# ========================
-
-PS C:\GCBA\Metricas_Boti_Mensual> cd No_Entendidos
-PS C:\GCBA\Metricas_Boti_Mensual\No_Entendidos> python athena_connector.py
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║                      ATHENA CONNECTOR - MODO PRUEBA                       ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-🔐 Verificando credenciales AWS...
-✓ Credenciales AWS activas
-
-📄 Leyendo config_fechas.txt...
-[INFO] Usando: C:\GCBA\Metricas_Boti_Mensual\config_fechas.txt
-✓ Modo: Mes completo
-  Mes: 12/2025
-  Desde: 2025-12-01
-  Hasta: 2026-01-01
-
-============================================================
-  Mensajes.sql
-============================================================
-☁️  Ejecutando en Athena...
-  🚀 Iniciando query en Athena...
-  📋 Query ID: abc123...
-  ⏳ Ejecutando... (30s)
-  ⏳ Ejecutando... (60s)
-  ...
-  ✅ Query exitosa
-💾 Descargando resultado...
-  ✅ Descargado: temp/mensajes_temp.csv (13029.30 MB)
-
-============================================================
-  Clicks.sql
-============================================================
-[Similar proceso...]
-  ✅ Descargado: temp/clicks_temp.csv (8966.41 MB)
-
-============================================================
-  Botones.sql
-============================================================
-[Similar proceso...]
-  ✅ Descargado: temp/botones_temp.csv (3245.12 MB)
-
-================================================================================
-  ✅ TODAS LAS QUERIES EJECUTADAS EXITOSAMENTE
-================================================================================
-📂 Archivos generados:
-   ├─ temp/mensajes_temp.csv
-   ├─ temp/clicks_temp.csv
-   └─ temp/botones_temp.csv
-
-# ========================
-# PASO 4: CALCULAR MÉTRICAS
-# ========================
-
-PS C:\GCBA\Metricas_Boti_Mensual\No_Entendidos> python No_Entendidos.py
-
-================================================================================
-  MÉTRICAS BOTI - VERSIÓN AUTO CONFIG
-  Lee configuración automática desde config_fechas.txt
-  PASO 6 Optimizado: 100x más rápido
-================================================================================
-
-📋 [PASO 0] Leyendo configuración...
-[INFO] Usando: C:\GCBA\Metricas_Boti_Mensual\config_fechas.txt
-[INFO] Modo: MES COMPLETO
-
-✓ Configuración leída correctamente:
-   Modo: MES
-   Período: diciembre 2025
-   Fecha inicio: 2025-12-01 00:00:00
-   Fecha fin: 2026-01-01 00:00:00
-
-================================================================================
-  PASO 1: CONFIGURACIÓN
-================================================================================
-[14:35:00] ✓ Directorio: C:\GCBA\Metricas_Boti_Mensual\No_Entendidos\temp
-📅 Período: 2025-12-01 00:00:00 a 2026-01-01 00:00:00
-💾 Chunk size: 50,000
-
-================================================================================
-  PASO 2: ARCHIVOS AUXILIARES
-================================================================================
-[14:35:00] ✓ Testers (desde directorio padre): 234
-[14:35:00] ✓ Intenciones mostrables (desde directorio padre): 668
-
-================================================================================
-  PASO 3: PROCESAR MENSAJES
-================================================================================
-[14:35:01] Cargando mensajes_temp.csv...
-[14:35:45] ✓ 43,250,123 leídos → 42,125,456 después de filtrar
-
-================================================================================
-  PASO 4: PROCESAR CLICKS
-================================================================================
-[14:42:15] Cargando clicks_temp.csv...
-[14:47:30] ✓ 28,456,789 leídos → 27,823,456 después de filtrar
-
-================================================================================
-  PASO 5: PROCESAR BOTONES
-================================================================================
-[14:47:31] Cargando botones_temp.csv...
-[14:49:05] ✓ 12,345,678 registros
-
-================================================================================
-  PASO 6: LIMPIEZA (OPTIMIZADO)
-================================================================================
-[14:49:06] Identificando mensajes consecutivos...
-[14:49:08] ✓ Eliminados: 3,256,585 mensajes consecutivos
-
-================================================================================
-  PASO 7: ANÁLISIS
-================================================================================
-[14:49:08] Calculando métricas...
-
-================================================================================
-  MÉTRICAS FINALES
-================================================================================
-  OneShots:       65.10%
-  Clicks:         13.00%
-  Texto:            4.80%
-  Abandonos:        5.40%
-  Nada:             5.50%
-  No Entendidos:    6.20%
-  Letra:            0.10%
-  
-  ✓ Suma: 100.00%
-  ✅ VALIDACIÓN EXITOSA
-  
-  Resolución:     82.90%
-  Problemas:       5.50%
-  Nada + NE:      11.70% ← Tu métrica clave
-
-================================================================================
-✅ COMPLETADO
-================================================================================
-
-⏱️ Tiempo total: 0:23:42
-
-💾 promedios1 = {'abandonos': 0.054, 'click': 0.130, 'one': 0.651, 
-                 'texto': 0.048, 'nada': 0.055, 'letra': 0.001, 'ne': 0.062}
-
-📁 Archivo JSON: metricas_boti_diciembre_2025.json
-
-📊 Generando archivos Excel...
-  📁 Carpeta output: C:\GCBA\Metricas_Boti_Mensual\No_Entendidos\output
-  ✅ Excel detallado: output\no_entendimiento_detalle_diciembre_2025.xlsx
-  ✅ Dashboard creado: output\no_entendimiento_diciembre_2025.xlsx (D13 = 11.70%)
-
-================================================================================
-📦 ARCHIVOS GENERADOS:
-================================================================================
-  [1] JSON:               metricas_boti_diciembre_2025.json
-  [2] Excel Detallado:    output\no_entendimiento_detalle_diciembre_2025.xlsx
-  [3] Dashboard Master:   output\no_entendimiento_diciembre_2025.xlsx
-
-  🎯 D13 (No Entendimiento): 11.70%
-================================================================================
-```
-
 ---
 
 ## 💡 Tips y Buenas Prácticas
-
-### Configuración Compartida
-
-**Importante:** El archivo `config_fechas.txt` está en la raíz y es **compartido por todos los proyectos** de métricas:
-
-```
-Metricas_Boti_Mensual/
-├── config_fechas.txt              ← Compartido por todos
-├── No_Entendidos/
-├── Feedback_CES/
-├── Feedback_CSAT/
-└── ...
-```
-
-**Ventaja:** Configuras el período **una vez** y puedes ejecutar múltiples scripts de métricas.
-
-**Ejemplo de workflow mensual:**
-```bash
-# 1. Configurar mes (UNA VEZ)
-cd C:\GCBA\Metricas_Boti_Mensual
-notepad config_fechas.txt
-# MES=12, AÑO=2025
-
-# 2. Login AWS (UNA VEZ)
-aws-azure-login --profile default --mode=gui
-
-# 3. Ejecutar múltiples proyectos
-cd No_Entendidos
-python athena_connector.py
-python No_Entendidos.py
-
-cd ..\Feedback_CSAT
-python feedback_csat.py
-
-cd ..\Feedback_CES
-python feedback_ces.py
-# etc.
-```
 
 ### Ejecución Mensual
 
@@ -1028,122 +701,76 @@ python feedback_ces.py
 
 **Ejemplo:** Primera semana de enero 2026 → Procesar diciembre 2025
 
-### Limpieza de Archivos Temporales
-
-Los archivos en `temp/` son **muy grandes** (~25 GB) y se pueden borrar después:
+### Workflow Recomendado
 
 ```bash
-# Después de generar los Excel, puedes borrar:
+# Día 1 del mes siguiente
+cd C:\GCBA\Metricas_Boti_Mensual
+
+# 1. Configurar mes anterior
+notepad config_fechas.txt
+# MES=12, AÑO=2025
+
+# 2. Login AWS
+aws-azure-login --profile default --mode=gui
+
+# 3. Ejecutar todos los módulos (30-60 min)
+python run_all.py
+
+# 4. Consolidar resultados
+python consolidar_excel.py
+
+# 5. Verificar dashboard generado
+# Abrir: Boti_Consolidado_diciembre_2025.xlsx
+```
+
+### Limpieza de Archivos Temporales
+
+Los archivos en `No_Entendidos/temp/` son **muy grandes** (~25 GB) y se pueden borrar después:
+
+```bash
 cd No_Entendidos
 del temp\*.csv
-
-# O mantener los temp\ por si necesitas reprocesar
 ```
 
 ### Backup de Resultados
 
-Los archivos en `output/` son **importantes**, hacer backup mensual:
-
 ```bash
-# Crear carpeta de backup
+# Crear carpeta de backup mensual
 mkdir backup\diciembre_2025
 
-# Copiar archivos
-copy output\*.xlsx backup\diciembre_2025\
-copy metricas_boti_diciembre_2025.json backup\diciembre_2025\
-```
+# Copiar dashboard consolidado
+copy Boti_Consolidado_diciembre_2025.xlsx backup\diciembre_2025\
 
-### Automatización (Opcional)
-
-Crear un script `.bat` para ejecutar todo:
-
-**ejecutar_metricas_no_entendidos.bat:**
-```batch
-@echo off
-echo ====================================
-echo MÉTRICAS BOTI - NO ENTENDIMIENTO
-echo ====================================
-
-REM Verificar que config_fechas.txt existe en la raíz
-if not exist "..\config_fechas.txt" (
-    echo ERROR: No se encuentra config_fechas.txt en la raiz del repo
-    echo Crea el archivo: Metricas_Boti_Mensual\config_fechas.txt
-    pause
-    exit /b 1
-)
-
-echo.
-echo Configuracion actual:
-type ..\config_fechas.txt
-echo.
-pause
-
-echo.
-echo [1/3] Login AWS...
-aws-azure-login --profile default --mode=gui
-if errorlevel 1 goto error
-
-echo.
-echo [2/3] Descargando datos de Athena...
-python athena_connector.py
-if errorlevel 1 goto error
-
-echo.
-echo [3/3] Calculando métricas...
-python No_Entendidos.py
-if errorlevel 1 goto error
-
-echo.
-echo ====================================
-echo ✓ PROCESO COMPLETADO
-echo ====================================
-echo.
-echo Archivos generados en:
-echo   - output\no_entendimiento_detalle_*.xlsx
-echo   - output\no_entendimiento_*.xlsx
-echo   - metricas_boti_*.json
-echo.
-pause
-exit
-
-:error
-echo.
-echo ====================================
-echo ✗ ERROR EN EL PROCESO
-echo ====================================
-pause
-exit /b 1
-```
-
-**Uso:**
-```bash
-# 1. Editar config_fechas.txt en la raíz
-# 2. Ir a No_Entendidos/
-cd C:\GCBA\Metricas_Boti_Mensual\No_Entendidos
-
-# 3. Ejecutar:
-ejecutar_metricas_no_entendidos.bat
+# Copiar outputs individuales (opcional)
+xcopy Metricas_Boti_Conversaciones_Usuarios\output\*.xlsx backup\diciembre_2025\ /S
+xcopy No_Entendidos\output\*.xlsx backup\diciembre_2025\ /S
+# etc.
 ```
 
 ---
 
 ## 🔄 Changelog
 
+### v2.2 (Enero 2026) - **ACTUAL**
+- ✅ **run_all.py:** Ejecución automática de `athena_connector.py` antes de `No_Entendidos.py`
+- ✅ **consolidar_excel.py:** Corregido path del módulo No_Entendidos
+- ✅ **Soporte para múltiples scripts** por módulo
+- ✅ README actualizado con documentación completa del sistema
+
 ### v2.1 (Enero 2026)
-- ✅ Generación automática de Excel (detallado + dashboard)
-- ✅ Dashboard completo con 17 indicadores
-- ✅ Carpeta output/ para archivos finales
-- ✅ Búsqueda flexible de config_fechas.txt
+- ✅ Sistema modular con 9 módulos independientes
+- ✅ Script maestro `run_all.py`
+- ✅ Consolidador automático de métricas
+- ✅ Dashboard con 17 indicadores
 
 ### v2.0 (Enero 2026)
-- ✅ Integración automática con config_fechas.txt
-- ✅ Manejo robusto de expiración de tokens AWS
-- ✅ Optimización PASO 6 (60 min → 2 seg)
-- ✅ Generación de JSON con resultados
+- ✅ Integración con `config_fechas.txt` centralizado
+- ✅ Optimización PASO 6 en No_Entendidos (60 min → 2 seg)
+- ✅ Generación automática de Excel con formato
 
 ### v1.0 (Diciembre 2025)
-- ✅ Versión inicial con configuración manual
-- ✅ Scripts separados sin integración
+- ✅ Versión inicial con módulos independientes
 
 ---
 
@@ -1173,13 +800,12 @@ Uso interno - Gobierno de la Ciudad de Buenos Aires
 
 ## 🙏 Agradecimientos
 
-**Repositorio:** https://github.com/EdVeralli/Metricas_Boti_Mensual  
-**Equipo:** Data Analytics - GCBA  
-**Proyecto:** Métricas Boti  
-**Autor:** Damian  
+**Repositorio:** https://github.com/EdVeralli/Metricas_Boti_Mensual
+**Equipo:** Data Analytics - GCBA
+**Proyecto:** Métricas Boti
 **Mantenedor:** @EdVeralli
 
 ---
 
-**Última actualización:** 13 de enero de 2026  
-**Versión:** 2.1
+**Última actualización:** 15 de enero de 2026
+**Versión:** 2.2
