@@ -123,7 +123,7 @@ MODULOS = {
         }
     },
     'no_entendimiento': {
-        'carpeta': 'No_Entendimiento/output',
+        'carpeta': 'No_Entendidos/output',
         'patron': 'no_entendimiento_*.xlsx',
         'patron_alternativo': None,
         'celdas': {

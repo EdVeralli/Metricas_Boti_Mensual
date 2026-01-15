@@ -52,7 +52,7 @@ MODULOS = [
     {
         'nombre': 'No Entendimiento',
         'carpeta': 'No_Entendidos',
-        'script': 'No_Entendidos.py',
+        'scripts': ['athena_connector.py', 'No_Entendidos.py'],  # Ejecutar ambos en orden
         'celdas': 'D13',
         'requiere_aws': True
     },
@@ -180,59 +180,78 @@ def leer_config_fechas():
         return False
 
 def ejecutar_modulo(modulo, numero, total):
-    '''Ejecuta un módulo específico'''
+    '''Ejecuta un módulo específico (soporta uno o múltiples scripts)'''
     print_section(f"[{numero}/{total}] {modulo['nombre']}")
     print(f"📊 Celdas Excel: {modulo['celdas']}")
     print(f"📂 Carpeta: {modulo['carpeta']}")
-    print(f"🐍 Script: {modulo['script']}")
-    
+
+    # Determinar si hay uno o múltiples scripts
+    if 'scripts' in modulo:
+        scripts = modulo['scripts']
+        print(f"🐍 Scripts: {', '.join(scripts)}")
+    else:
+        scripts = [modulo['script']]
+        print(f"🐍 Script: {modulo['script']}")
+
     if modulo['requiere_aws']:
         print(f"🔐 Requiere AWS: Sí")
     else:
         print(f"🔐 Requiere AWS: No")
-    
+
     print("\n⏳ Ejecutando...")
-    
+
     inicio = time.time()
-    
+
     try:
         # Cambiar al directorio del módulo
         os.chdir(modulo['carpeta'])
-        
-        # Ejecutar el script
-        result = subprocess.run(
-            [sys.executable, modulo['script']],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            errors='replace'
-        )
-        
+
+        # Ejecutar todos los scripts en orden
+        for idx, script in enumerate(scripts, 1):
+            if len(scripts) > 1:
+                print(f"\n  [{idx}/{len(scripts)}] Ejecutando {script}...")
+
+            result = subprocess.run(
+                [sys.executable, script],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace'
+            )
+
+            if result.returncode != 0:
+                # Volver al directorio raíz
+                os.chdir('..')
+                fin = time.time()
+                duracion = fin - inicio
+
+                print(f"  ❌ Error en {script}")
+                print(f"\n  Salida de error:")
+                print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
+                return {
+                    'nombre': modulo['nombre'],
+                    'exitoso': False,
+                    'duracion': duracion,
+                    'mensaje': f'Error en {script}'
+                }
+            else:
+                if len(scripts) > 1:
+                    print(f"  ✅ {script} completado")
+
         # Volver al directorio raíz
         os.chdir('..')
-        
+
         fin = time.time()
         duracion = fin - inicio
-        
-        if result.returncode == 0:
-            print(f"✅ Completado en {duracion:.1f} segundos")
-            return {
-                'nombre': modulo['nombre'],
-                'exitoso': True,
-                'duracion': duracion,
-                'mensaje': 'OK'
-            }
-        else:
-            print(f"❌ Error en ejecución")
-            print(f"\nSalida de error:")
-            print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
-            return {
-                'nombre': modulo['nombre'],
-                'exitoso': False,
-                'duracion': duracion,
-                'mensaje': 'Error en ejecución'
-            }
-    
+
+        print(f"✅ Completado en {duracion:.1f} segundos")
+        return {
+            'nombre': modulo['nombre'],
+            'exitoso': True,
+            'duracion': duracion,
+            'mensaje': 'OK'
+        }
+
     except Exception as e:
         os.chdir('..')  # Asegurar que volvemos a raíz
         fin = time.time()
