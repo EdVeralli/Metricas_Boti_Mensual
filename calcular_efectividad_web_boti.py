@@ -194,7 +194,6 @@ def generar_excel_resultado(resultados: dict, mes: int, año: int, ruta_salida: 
         ("Total Boti (B30)", resultados['total_boti'], False),
         ("Total Web (S2)", resultados['total_web'], False),
         ("Tasa Efectividad WEB (T2)", resultados['tasa_efectividad_web'], True),
-        ("Total General WEB (S2)", resultados['total_general_web'], False),
     ]
 
     fila += 1
@@ -208,7 +207,6 @@ def generar_excel_resultado(resultados: dict, mes: int, año: int, ruta_salida: 
     fuentes = [
         "Metricas_Boti_Mensual",
         "Metricas_Boti_Mensual",
-        "Metricas_Web_Mensual",
         "Metricas_Web_Mensual",
         "Metricas_Web_Mensual",
     ]
