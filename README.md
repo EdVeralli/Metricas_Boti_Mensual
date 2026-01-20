@@ -74,6 +74,12 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 │     Genera: Boti_Consolidado_diciembre_2025.xlsx           │
 │     Con todas las métricas unificadas                       │
 └─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  4. EFECTIVIDAD WEB+BOTI (calcular_efectividad_web_boti.py)│
+│     Combina datos de Metricas_Boti + Metricas_Web          │
+│     Genera: efectividad_web_boti_{mes}_{año}.xlsx          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Componentes del Sistema
@@ -319,6 +325,49 @@ RESUMEN DE MÉTRICAS CONSOLIDADAS
 ✨ CONSOLIDACIÓN COMPLETADA
 ```
 
+#### PASO 5: Calcular Tasa de Efectividad WEB+BOTI (Opcional)
+
+Este paso combina métricas de **Metricas_Boti_Mensual** y **Metricas_Web_Mensual** para calcular la tasa de efectividad ponderada.
+
+**Requisito:** Debe haberse ejecutado también el proceso de `Metricas_Web_Mensual` para el mismo período.
+
+```bash
+python calcular_efectividad_web_boti.py
+```
+
+**Resultado esperado:**
+```
+Procesando: Diciembre 2025
+==================================================
+Leyendo: feedback_efectividad_diciembre_2025_efectividad.xlsx
+Leyendo: conteo_completo_diciembre_2025.xlsx
+
+Valores de entrada:
+  Efectividad Positiva Boti: 0.6012 (60.12%)
+  Total Boti: 43,170
+  Total Web: 25,478
+  Tasa Efectividad WEB: 80.17
+
+Calculos intermedios:
+  Total General: 68,648
+  Ponderacion Feedback Boti: 0.6289 (62.89%)
+  Primer Parcial General: 0.3781
+  Ponderacion Feedback WEB: 0.3711 (37.11%)
+  Segundo Parcial General: 0.2975
+
+==================================================
+TASA DE EFECTIVIDAD WEB+BOTI: 67.56%
+==================================================
+Excel generado: efectividad_web_boti/efectividad_web_boti_diciembre_2025.xlsx
+
+Proceso completado exitosamente.
+```
+
+**Archivo generado:**
+```
+efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
+```
+
 ---
 
 ## 📊 Módulos Implementados
@@ -445,9 +494,12 @@ Metricas_Boti_Mensual/                          ← Repositorio raíz
 ├── config_fechas.txt                           ← Configuración centralizada
 ├── run_all.py                                  ← Script maestro
 ├── consolidar_excel.py                         ← Consolidador de métricas
+├── calcular_efectividad_web_boti.py            ← Efectividad WEB+BOTI (NUEVO)
 ├── diagnosticar_excel.py                       ← Herramienta de diagnóstico
 │
 ├── Boti_Consolidado_diciembre_2025.xlsx        ← Dashboard final (generado)
+├── efectividad_web_boti/                       ← Output efectividad combinada
+│   └── efectividad_web_boti_diciembre_2025.xlsx
 │
 ├── Metricas_Boti_Conversaciones_Usuarios/      ← Módulo 1
 │   ├── Usuarios_Conversaciones.py
@@ -584,7 +636,41 @@ Boti_Consolidado_diciembre_2025.xlsx
 
 ---
 
-### 3. diagnosticar_excel.py
+### 3. calcular_efectividad_web_boti.py
+
+**Función:** Calcula la Tasa de Efectividad combinada WEB+BOTI.
+
+**Uso:**
+```bash
+python calcular_efectividad_web_boti.py
+```
+
+**Fuentes de datos:**
+- `Metricas_Boti_Mensual/Feedback_Efectividad/output/feedback_efectividad_{mes}_{año}_efectividad.xlsx`
+  - Celda C28: Efectividad Positiva Boti
+  - Celda B30: Total Boti
+- `Metricas_Web_Mensual/Satisfaccion/data/conteo_completo_{mes}_{año}.xlsx`
+  - Columna Total_General (S2): Total Web
+  - Columna Tasa_Efectividad (T2): Tasa Efectividad WEB
+
+**Fórmulas:**
+```
+Total General = Total Boti + Total Web
+Ponderacion Feedback Boti = Total Boti / Total General
+Primer Parcial General = Efectividad Positiva Boti × Ponderacion Feedback Boti
+Ponderacion Feedback WEB = Total Web / Total General
+Segundo Parcial General = Ponderacion Feedback WEB × Tasa Efectividad WEB
+Tasa de Efectividad WEB+BOTI = Primer Parcial General + Segundo Parcial General
+```
+
+**Archivo generado:**
+```
+efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
+```
+
+---
+
+### 4. diagnosticar_excel.py
 
 **Función:** Herramienta de diagnóstico para verificar archivos Excel.
 
@@ -752,7 +838,13 @@ xcopy No_Entendidos\output\*.xlsx backup\diciembre_2025\ /S
 
 ## 🔄 Changelog
 
-### v2.2 (Enero 2026) - **ACTUAL**
+### v2.3 (Enero 2026) - **ACTUAL**
+- ✅ **NUEVO:** `calcular_efectividad_web_boti.py` - Calcula tasa de efectividad combinada WEB+BOTI
+- ✅ Integración con repositorio `Metricas_Web_Mensual`
+- ✅ Genera Excel con cálculos intermedios y resultado final ponderado
+- ✅ README actualizado con documentación del nuevo script
+
+### v2.2 (Enero 2026)
 - ✅ **run_all.py:** Ejecución automática de `athena_connector.py` antes de `No_Entendidos.py`
 - ✅ **consolidar_excel.py:** Corregido path del módulo No_Entendidos
 - ✅ **Soporte para múltiples scripts** por módulo
@@ -807,5 +899,5 @@ Uso interno - Gobierno de la Ciudad de Buenos Aires
 
 ---
 
-**Última actualización:** 15 de enero de 2026
-**Versión:** 2.2
+**Última actualización:** 20 de enero de 2026
+**Versión:** 2.3
