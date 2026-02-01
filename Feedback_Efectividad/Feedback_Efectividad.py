@@ -564,107 +564,96 @@ def create_excel_with_efectividad(filepath, df, valores, calculos, modo, mes, an
 
 def create_or_update_dashboard_master(filepath, efectividad_valor, modo, mes, anio, fecha_inicio, fecha_fin):
     '''
-    Crea o actualiza el Excel Dashboard Master
+    Crea el Excel Dashboard Master con el template estándar
     Llena SOLO la celda D14 (Tasa de Efectividad)
+    Usa el mismo template que CES y CSAT
     '''
-    
-    # Verificar si el archivo ya existe
-    if os.path.exists(filepath):
-        print("    [INFO] Dashboard Master existe, actualizando celda D14...")
-        wb = openpyxl.load_workbook(filepath)
-        ws = wb.active
-        
-        # Actualizar solo D14
-        ws['D14'] = efectividad_valor
-        ws['D14'].number_format = '0.00%'
-        
-        wb.save(filepath)
-        print("    [OK] Celda D14 actualizada: {:.2f}%".format(efectividad_valor * 100))
-        return
-    
-    # Si no existe, crear desde cero
-    print("    [INFO] Creando Dashboard Master nuevo...")
-    
+
+    print("    [INFO] Creando Dashboard Master...")
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Dashboard'
-    
+
+    header_font = Font(bold=True)
+
     # Determinar el header de fecha
     if modo == 'mes':
-        mes_nombre = get_month_name(mes)
-        header_fecha = '{} {}'.format(mes_nombre, anio)
+        header_fecha = '{}-{}'.format(get_month_abbr(mes), str(anio)[-2:])
     else:
         fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
         fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
-        header_fecha = '{} al {}'.format(
-            fecha_inicio_obj.strftime('%d/%m/%Y'),
-            fecha_fin_obj.strftime('%d/%m/%Y')
+        header_fecha = '{}-{}'.format(
+            fecha_inicio_obj.strftime('%d/%m'),
+            fecha_fin_obj.strftime('%d/%m/%y')
         )
-    
-    # Estilos
-    title_font = Font(bold=True, size=14)
-    header_font = Font(bold=True, size=11)
-    efectividad_font = Font(bold=True, size=12, color="FFFFFF")
-    efectividad_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
-    
-    # Título
-    ws['A1'] = 'Dashboard Master - Feedback Efectividad'
-    ws['A1'].font = title_font
-    
-    ws['A2'] = 'Período: {}'.format(header_fecha)
-    
-    # Headers de columnas
-    ws['B4'] = 'Métrica'
-    ws['C4'] = 'Descripción'
-    ws['D4'] = 'Valor'
-    ws['B4'].font = header_font
-    ws['C4'].font = header_font
-    ws['D4'].font = header_font
-    
-    # Filas de métricas (estructura base, solo D14 tiene valor)
-    metricas = [
-        ('D5', 'N/A', 'Placeholder 1'),
-        ('D6', 'N/A', 'Placeholder 2'),
-        ('D7', 'N/A', 'Placeholder 3'),
-        ('D8', 'N/A', 'Placeholder 4'),
-        ('D9', 'N/A', 'Placeholder 5'),
-        ('D10', 'N/A', 'Placeholder 6'),
-        ('D11', 'N/A', 'Placeholder 7'),
-        ('D12', 'N/A', 'Placeholder 8'),
-        ('D13', 'N/A', 'Placeholder 9'),
-    ]
-    
-    for idx, (celda, valor, desc) in enumerate(metricas, start=5):
-        ws['B{}'.format(idx)] = desc
-        ws['C{}'.format(idx)] = 'Descripción de {}'.format(desc)
-        ws[celda] = valor
-    
-    # CELDA D14: Tasa de Efectividad (LA IMPORTANTE)
+
+    # FILA 1: Encabezados
+    ws['B1'] = 'Indicador'
+    ws['C1'] = 'Descripción/Detalle'
+    ws['D1'] = header_fecha
+    ws['B1'].font = header_font
+    ws['C1'].font = header_font
+    ws['D1'].font = header_font
+
+    # FILA 2-13: Otros indicadores (vacíos)
+    ws['B2'] = 'Conversaciones'
+    ws['C2'] = 'Q Conversaciones'
+
+    ws['B3'] = 'Usuarios'
+    ws['C3'] = 'Q Usuarios únicos'
+
+    ws['B4'] = 'Sesiones abiertas por Pushes'
+    ws['C4'] = 'Q Sesiones que se abrieron con una Push'
+
+    ws['B5'] = 'Sesiones Alcanzadas por Pushes'
+    ws['C5'] = 'Q Sesiones que recibieron al menos 1 Push'
+
+    ws['B6'] = 'Mensajes Pushes Enviados'
+    ws['C6'] = 'Q de mensajes enviados bajo el formato push [Hilde gris]'
+
+    ws['B7'] = 'Contenidos en Botmaker'
+    ws['C7'] = 'Contenidos prendidos en botmaker (todos los prendidos, incluy'
+
+    ws['B8'] = 'Contenidos Prendidos para  el USUARIO'
+    ws['C8'] = 'Contenidos prendidos de cara al usuario (relevantes) – (no inclu'
+
+    ws['B9'] = 'Interacciones'
+    ws['C9'] = 'Q Interacciones'
+
+    ws['B10'] = 'Trámites, solicitudes y turnos'
+    ws['C10'] = 'Q Trámites, solicitudes y turnos disponibles'
+
+    ws['B11'] = 'contenidos mas consultados'
+    ws['C11'] = 'Q Contenidos con más interacciones en el mes (Top 10)'
+
+    ws['B12'] = 'Derivaciones'
+    ws['C12'] = 'Q Derivaciones'
+
+    ws['B13'] = 'No entendimiento'
+    ws['C13'] = 'Performance motor de búsqueda del nuevo modelo de IA'
+
+    # FILA 14: Tasa de Efectividad - AQUI VA NUESTRO VALOR
     ws['B14'] = 'Tasa de Efectividad'
-    ws['C14'] = '% de usuarios que dieron feedback positivo'
+    ws['C14'] = 'Mide el porcentaje de usuarios que lograron su objetivo'
     ws['D14'] = efectividad_valor
     ws['D14'].number_format = '0.00%'
-    ws['D14'].font = efectividad_font
-    ws['D14'].fill = efectividad_fill
-    ws['D14'].alignment = Alignment(horizontal='center')
-    
-    # Más placeholders después de D14
-    ws['B15'] = 'Placeholder 10'
-    ws['C15'] = 'Descripción placeholder 10'
-    ws['D15'] = 'N/A'
-    
-    ws['B16'] = 'Placeholder 11'
-    ws['C16'] = 'Descripción placeholder 11'
-    ws['D16'] = 'N/A'
-    
+
+    # FILA 15-17: Otros indicadores (vacíos)
+    ws['B15'] = 'CES (Customer Effort Score)'
+    ws['C15'] = 'Mide la facilidad con la que los usuarios pueden interactuar con'
+
+    ws['B16'] = 'Satisfacción (CSAT)'
+    ws['C16'] = 'Mide la satisfacción usando una escala de 1 a 5'
+
     ws['B17'] = 'Uptime servidor'
     ws['C17'] = 'Disponibilidad del servidor (% tiempo activo)'
-    
+
     # Ajustar anchos
     ws.column_dimensions['B'].width = 35
     ws.column_dimensions['C'].width = 50
     ws.column_dimensions['D'].width = 15
-    
+
     wb.save(filepath)
     print("    [OK] Dashboard Master creado (D14 = {:.2f}%)".format(efectividad_valor * 100))
 

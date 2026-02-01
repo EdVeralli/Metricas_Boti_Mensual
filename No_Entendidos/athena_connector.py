@@ -24,22 +24,43 @@ ATHENA_REGION = 'us-east-1'  # Cambiar si usas otra región
 # FUNCIONES PRINCIPALES
 # =============================================================================
 
-def leer_config_fechas(archivo='config_fechas.txt'):
+def leer_config_fechas(archivo='../config_fechas.txt'):
     """
     Lee config_fechas.txt y retorna (fecha_inicio, fecha_fin)
-    
+
     Soporta dos modos:
     1. MES=10, AÑO=2025 → Calcula todo el mes
     2. FECHA_INICIO=2025-10-01, FECHA_FIN=2025-10-31 → Rango específico
-    
+
     Returns:
         tuple: (fecha_inicio, fecha_fin) en formato 'YYYY-MM-DD'
     """
+    # Buscar el archivo en múltiples ubicaciones
+    rutas_posibles = [
+        archivo,                    # Ruta especificada (por defecto ../config_fechas.txt)
+        'config_fechas.txt',        # Directorio actual
+        '../config_fechas.txt',     # Directorio padre (raíz del repo)
+        '../../config_fechas.txt',  # Dos niveles arriba
+    ]
+
+    archivo_encontrado = None
+    for ruta in rutas_posibles:
+        if os.path.exists(ruta):
+            archivo_encontrado = ruta
+            break
+
+    if not archivo_encontrado:
+        raise FileNotFoundError(
+            f"No se encuentra config_fechas.txt en ninguna ubicación.\n"
+            f"Ubicaciones buscadas: {rutas_posibles}\n"
+            f"Crea el archivo en la raíz del repositorio."
+        )
+
     config = {}
-    
-    print(f"📄 Leyendo {archivo}...")
-    
-    with open(archivo, 'r', encoding='utf-8') as f:
+
+    print(f"📄 Leyendo {archivo_encontrado}...")
+
+    with open(archivo_encontrado, 'r', encoding='utf-8') as f:
         for linea in f:
             linea = linea.strip()
             
