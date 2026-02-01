@@ -539,31 +539,50 @@ def obtener_datos_athena():
     
     # Advertencia
     print("\n⚠️  IMPORTANTE:")
-    print("   Las queries en Athena pueden tardar 5-15 minutos")
+    print("   Las queries en Athena pueden tardar 5-15 minutos cada una")
     print("   Escanean millones de registros")
-    print("   No interrumpas el proceso\n")
-    
-    input("Presiona Enter para continuar...")
-    
+    print("   ANTES de cada query se te pedirá revalidar credenciales AWS\n")
+
     # Ejecutar las 3 queries
     try:
         # Query 1: Mensajes
+        print("\n" + "=" * 60)
+        print("  QUERY 1 de 3: Mensajes.sql")
+        print("=" * 60)
+        print("\n🔐 ANTES DE CONTINUAR, revalida tus credenciales AWS:")
+        print("   Ejecuta en otra terminal: aws-azure-login --profile default --mode=gui\n")
+        input("Presiona Enter cuando hayas revalidado las credenciales...")
+
         mensajes_csv = ejecutar_y_descargar(
             'Mensajes.sql',
             fecha_inicio,
             fecha_fin,
             'temp/mensajes_temp.csv'
         )
-        
+
         # Query 2: Clicks
+        print("\n" + "=" * 60)
+        print("  QUERY 2 de 3: Clicks.sql")
+        print("=" * 60)
+        print("\n🔐 ANTES DE CONTINUAR, revalida tus credenciales AWS:")
+        print("   Ejecuta en otra terminal: aws-azure-login --profile default --mode=gui\n")
+        input("Presiona Enter cuando hayas revalidado las credenciales...")
+
         clicks_csv = ejecutar_y_descargar(
             'Clicks.sql',
             fecha_inicio,
             fecha_fin,
             'temp/clicks_temp.csv'
         )
-        
+
         # Query 3: Botones
+        print("\n" + "=" * 60)
+        print("  QUERY 3 de 3: Botones.sql")
+        print("=" * 60)
+        print("\n🔐 ANTES DE CONTINUAR, revalida tus credenciales AWS:")
+        print("   Ejecuta en otra terminal: aws-azure-login --profile default --mode=gui\n")
+        input("Presiona Enter cuando hayas revalidado las credenciales...")
+
         botones_csv = ejecutar_y_descargar(
             'Botones.sql',
             fecha_inicio,
