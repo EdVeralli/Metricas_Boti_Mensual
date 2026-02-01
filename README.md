@@ -55,14 +55,19 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  2. EJECUCIÓN DE MÓDULOS (run_all.py)                      │
+│  2. NO_ENTENDIDOS (MANUAL - Requiere interacción)          │
+│     cd No_Entendidos                                        │
+│     ├─ python athena_connector.py (descarga CSVs)          │
+│     └─ python No_Entendidos.py (calcula métrica D13)       │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  3. EJECUCIÓN DE MÓDULOS (run_all.py)                      │
+│     Verifica que No_Entendidos ya fue ejecutado            │
 │     ├─ Usuarios_Conversaciones      → D2, D3               │
 │     ├─ Pushes_Enviadas              → D6                   │
 │     ├─ Sesiones_Abiertas_Pushes     → D4                   │
 │     ├─ Sesiones_Alcanzadas_Pushes   → D5                   │
-│     ├─ No_Entendidos                → D13                  │
-│     │  ├─ 1. athena_connector.py (descarga CSVs)          │
-│     │  └─ 2. No_Entendidos.py (calcula métrica)           │
 │     ├─ Feedback_Efectividad         → D14                  │
 │     ├─ Feedback_CES                 → D15                  │
 │     ├─ Feedback_CSAT                → D16                  │
@@ -70,13 +75,13 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  3. CONSOLIDACIÓN (consolidar_excel.py)                    │
+│  4. CONSOLIDACIÓN (consolidar_excel.py)                    │
 │     Genera: Boti_Consolidado_diciembre_2025.xlsx           │
 │     Con todas las métricas unificadas                       │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  4. EFECTIVIDAD WEB+BOTI (calcular_efectividad_web_boti.py)│
+│  5. EFECTIVIDAD WEB+BOTI (calcular_efectividad_web_boti.py)│
 │     Combina datos de Metricas_Boti + Metricas_Web          │
 │     Genera: efectividad_web_boti_{mes}_{año}.xlsx          │
 └─────────────────────────────────────────────────────────────┘
@@ -90,10 +95,11 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 - Compartido por todos los módulos
 
 #### 2. **run_all.py** (Orquestador Maestro)
-- Ejecuta los 9 módulos secuencialmente
+- Verifica que No_Entendidos ya fue ejecutado manualmente
+- Ejecuta los 8 módulos restantes secuencialmente
 - Verifica credenciales AWS
 - Muestra progreso y resumen de ejecución
-- Duración total: 30-60 minutos
+- Duración total: 15-30 minutos (sin No_Entendidos)
 
 #### 3. **Módulos Independientes** (9 carpetas)
 - Cada módulo calcula una o más métricas específicas
@@ -207,7 +213,7 @@ Procesa solo las primeras 2 semanas de diciembre.
 
 ## 🚀 Uso - Guía Rápida
 
-### Ejecución Mensual Completa (3 Pasos)
+### Ejecución Mensual Completa (5 Pasos)
 
 #### PASO 1: Configurar Período
 
@@ -232,11 +238,28 @@ aws-azure-login --profile default --mode=gui
 
 Esto abre el navegador para autenticación.
 
-#### PASO 3: Ejecutar Todos los Módulos
+#### PASO 3: Ejecutar No_Entendidos (MANUAL)
+
+**IMPORTANTE:** Este módulo requiere interacción manual para revalidar credenciales AWS antes de cada query.
+
+```bash
+cd No_Entendidos
+python athena_connector.py
+python No_Entendidos.py
+cd ..
+```
+
+**Nota:** Durante `athena_connector.py` se te pedirá revalidar credenciales AWS antes de cada una de las 3 queries. Esto evita que las descargas se corten por expiración de token.
+
+**Duración:** 30-50 minutos
+
+#### PASO 4: Ejecutar los Demás Módulos
 
 ```bash
 python run_all.py
 ```
+
+**Nota:** `run_all.py` verificará que No_Entendidos ya fue ejecutado. Si no encuentra el archivo de output, te indicará que debes ejecutarlo primero.
 
 **Resultado esperado:**
 ```
@@ -249,13 +272,15 @@ Ejecutará los siguientes módulos:
   2. Pushes Enviadas (D6)
   3. Sesiones Abiertas por Pushes (D4)
   4. Sesiones Alcanzadas por Pushes (D5)
-  5. No Entendimiento (D13)
+  5. No Entendimiento (D13) ← Ya ejecutado manualmente
   6. Feedback - Efectividad (D14)
   7. Feedback - CES (D15)
   8. Feedback - CSAT (D16)
   9. Disponibilidad WhatsApp (D17)
 
-⚠️  IMPORTANTE: Este proceso puede tardar varios minutos
+✅ No_Entendidos ya ejecutado - se omitirá
+
+🚀 Iniciando ejecución automática...
 
 [Proceso de ejecución...]
 
@@ -265,7 +290,7 @@ RESUMEN DE EJECUCIÓN
 📊 Total de módulos: 9
 ✅ Exitosos: 9
 ❌ Fallidos: 0
-⏱️  Tiempo total: 45.3 minutos
+⏱️  Tiempo total: 15.3 minutos
 
 🎉 ¡TODOS LOS MÓDULOS SE EJECUTARON EXITOSAMENTE!
 
@@ -273,7 +298,7 @@ RESUMEN DE EJECUCIÓN
    python consolidar_excel.py
 ```
 
-**Duración:** 30-60 minutos (dependiendo de la cantidad de datos)
+**Duración:** 15-30 minutos (sin No_Entendidos)
 
 #### PASO 4: Consolidar Resultados
 
@@ -577,7 +602,7 @@ Metricas_Boti_Mensual/                          ← Repositorio raíz
 
 ### 1. run_all.py
 
-**Función:** Orquestador maestro que ejecuta todos los módulos secuencialmente.
+**Función:** Orquestador maestro que ejecuta los módulos de métricas (excepto No_Entendidos).
 
 **Uso:**
 ```bash
@@ -585,26 +610,28 @@ python run_all.py
 ```
 
 **Características:**
+- ✅ **Verifica que No_Entendidos ya fue ejecutado** (busca el Excel de output del mes)
+- ✅ Si No_Entendidos no fue ejecutado, muestra instrucciones y aborta
 - ✅ Verifica credenciales AWS antes de empezar
 - ✅ Lee `config_fechas.txt` y valida configuración
-- ✅ Ejecuta los 9 módulos en orden
-- ✅ Para el módulo **No_Entendidos**, ejecuta primero `athena_connector.py` y luego `No_Entendidos.py`
+- ✅ Ejecuta los 8 módulos restantes en orden
 - ✅ Muestra progreso en tiempo real
 - ✅ Genera resumen final con métricas de ejecución
-- ✅ Indica si todos los módulos se ejecutaron exitosamente
 
 **Módulos ejecutados en orden:**
 1. Usuarios y Conversaciones
 2. Pushes Enviadas
 3. Sesiones Abiertas por Pushes
 4. Sesiones Alcanzadas por Pushes
-5. No Entendimiento (athena_connector.py → No_Entendidos.py)
+5. ~~No Entendimiento~~ → **Debe ejecutarse manualmente ANTES**
 6. Feedback - Efectividad
 7. Feedback - CES
 8. Feedback - CSAT
 9. Disponibilidad WhatsApp
 
-**Duración Total:** 30-60 minutos
+**Duración Total:** 15-30 minutos (sin No_Entendidos)
+
+**IMPORTANTE:** No_Entendidos debe ejecutarse manualmente antes de run_all.py porque requiere interacción del usuario para revalidar credenciales AWS antes de cada query.
 
 ---
 
@@ -702,23 +729,29 @@ aws-azure-login --profile default --mode=gui
 
 ---
 
-### 2. Error en Módulo No_Entendidos
+### 2. No_Entendidos No Fue Ejecutado
 
 **Síntoma:**
 ```
-[ERROR] No se encuentra mensajes_temp.csv
+❌ No_Entendidos NO fue ejecutado para enero 2026
+   Archivo esperado: No_Entendidos/output/no_entendimiento_enero_2026.xlsx
+
+⚠️  ACCIÓN REQUERIDA: Ejecutar No_Entendidos manualmente
 ```
 
-**Causa:** `athena_connector.py` no se ejecutó o falló.
+**Causa:** `run_all.py` requiere que No_Entendidos se ejecute manualmente ANTES.
 
 **Solución:**
-El `run_all.py` ahora ejecuta `athena_connector.py` automáticamente antes de `No_Entendidos.py`. Si ejecutas manualmente, asegúrate de ejecutar primero:
 
 ```bash
 cd No_Entendidos
-python athena_connector.py
+python athena_connector.py   # Revalidar credenciales cuando lo pida
 python No_Entendidos.py
+cd ..
+python run_all.py            # Ahora sí funcionará
 ```
+
+**Nota:** `athena_connector.py` te pedirá revalidar credenciales AWS antes de cada query para evitar que las descargas se corten por expiración de token.
 
 ---
 
@@ -838,7 +871,16 @@ xcopy No_Entendidos\output\*.xlsx backup\diciembre_2025\ /S
 
 ## 🔄 Changelog
 
-### v2.3 (Enero 2026) - **ACTUAL**
+### v2.4 (Febrero 2026) - **ACTUAL**
+- ✅ **run_all.py:** Ahora verifica que No_Entendidos ya fue ejecutado antes de continuar
+- ✅ **run_all.py:** No_Entendidos debe ejecutarse manualmente (requiere interacción)
+- ✅ **athena_connector.py:** Pausa antes de cada query para revalidar credenciales AWS
+- ✅ **athena_connector.py:** Busca config_fechas.txt en la raíz del repo
+- ✅ **Feedback_Efectividad.py:** Template de Excel unificado (igual que CES/CSAT)
+- ✅ **Feedback_Efectividad.py:** Sin colores de fondo en celdas
+- ✅ README actualizado con nuevo flujo de trabajo
+
+### v2.3 (Enero 2026)
 - ✅ **NUEVO:** `calcular_efectividad_web_boti.py` - Calcula tasa de efectividad combinada WEB+BOTI
 - ✅ Integración con repositorio `Metricas_Web_Mensual`
 - ✅ Genera Excel con cálculos intermedios y resultado final ponderado
@@ -899,5 +941,5 @@ Uso interno - Gobierno de la Ciudad de Buenos Aires
 
 ---
 
-**Última actualización:** 20 de enero de 2026
-**Versión:** 2.3
+**Última actualización:** 1 de febrero de 2026
+**Versión:** 2.4

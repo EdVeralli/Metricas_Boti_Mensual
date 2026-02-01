@@ -138,19 +138,19 @@ def verificar_config():
         return False
 
 def leer_config_fechas():
-    '''Lee y muestra la configuración de fechas'''
+    '''Lee y muestra la configuración de fechas. Retorna (exito, mes_nombre, anio)'''
     try:
         with open('config_fechas.txt', 'r', encoding='utf-8') as f:
             mes = None
             anio = None
             fecha_inicio = None
             fecha_fin = None
-            
+
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                
+
                 if line.startswith('MES='):
                     mes = line.split('=')[1].strip()
                 elif line.startswith('AÑO=') or line.startswith('ANO='):
@@ -159,24 +159,43 @@ def leer_config_fechas():
                     fecha_inicio = line.split('=')[1].strip()
                 elif line.startswith('FECHA_FIN='):
                     fecha_fin = line.split('=')[1].strip()
-            
+
+            meses = {
+                '1': 'enero', '2': 'febrero', '3': 'marzo', '4': 'abril',
+                '5': 'mayo', '6': 'junio', '7': 'julio', '8': 'agosto',
+                '9': 'septiembre', '10': 'octubre', '11': 'noviembre', '12': 'diciembre'
+            }
+
             if fecha_inicio and fecha_fin:
                 print(f"📅 Período: {fecha_inicio} al {fecha_fin} (rango personalizado)")
-                return True
+                # Para rango personalizado, extraer mes y año del fecha_inicio
+                partes = fecha_inicio.split('-')
+                anio = partes[0]
+                mes_num = partes[1].lstrip('0') or '1'
+                mes_nombre = meses.get(mes_num, f"mes_{mes_num}")
+                return True, mes_nombre, anio
             elif mes and anio:
-                meses = {
-                    '1': 'enero', '2': 'febrero', '3': 'marzo', '4': 'abril',
-                    '5': 'mayo', '6': 'junio', '7': 'julio', '8': 'agosto',
-                    '9': 'septiembre', '10': 'octubre', '11': 'noviembre', '12': 'diciembre'
-                }
-                mes_nombre = meses.get(mes, f"mes {mes}")
+                mes_nombre = meses.get(mes, f"mes_{mes}")
                 print(f"📅 Período: {mes_nombre} {anio} (mes completo)")
-                return True
+                return True, mes_nombre, anio
             else:
                 print("⚠️  No se pudo leer la configuración de fechas")
-                return False
+                return False, None, None
     except Exception as e:
         print(f"❌ Error al leer config: {str(e)}")
+        return False, None, None
+
+
+def verificar_no_entendidos_ejecutado(mes_nombre, anio):
+    '''Verifica si No_Entendidos ya fue ejecutado para el período'''
+    archivo_esperado = f"No_Entendidos/output/no_entendimiento_{mes_nombre}_{anio}.xlsx"
+
+    if os.path.exists(archivo_esperado):
+        print(f"✅ No_Entendidos ya ejecutado: {archivo_esperado}")
+        return True
+    else:
+        print(f"❌ No_Entendidos NO fue ejecutado para {mes_nombre} {anio}")
+        print(f"   Archivo esperado: {archivo_esperado}")
         return False
 
 def ejecutar_modulo(modulo, numero, total):
@@ -308,40 +327,68 @@ def main():
     
     # Verificaciones previas
     print_section("VERIFICACIONES PREVIAS")
-    
+
     if not verificar_config():
         print("\n❌ Configuración inválida. Abortando.")
         sys.exit(1)
-    
-    if not leer_config_fechas():
+
+    exito, mes_nombre, anio = leer_config_fechas()
+    if not exito:
         print("\n❌ No se pudo leer el período. Abortando.")
         sys.exit(1)
-    
+
+    # Verificar si No_Entendidos ya fue ejecutado manualmente
+    if not verificar_no_entendidos_ejecutado(mes_nombre, anio):
+        print("\n" + "=" * 70)
+        print("⚠️  ACCIÓN REQUERIDA: Ejecutar No_Entendidos manualmente")
+        print("=" * 70)
+        print("\nNo_Entendidos requiere interacción manual (revalidar credenciales AWS).")
+        print("Debe ejecutarse ANTES de run_all.py.\n")
+        print("Pasos:")
+        print("  1. cd No_Entendidos")
+        print("  2. python athena_connector.py")
+        print("  3. python No_Entendidos.py")
+        print("  4. cd ..")
+        print("  5. python run_all.py  (volver a ejecutar este script)\n")
+        sys.exit(1)
+
     # Verificar AWS solo si hay módulos que lo requieren
-    requiere_aws = any(m['requiere_aws'] for m in MODULOS)
+    # Excluir No_Entendidos de los módulos a ejecutar (ya fue ejecutado)
+    modulos_a_ejecutar = [m for m in MODULOS if m['carpeta'] != 'No_Entendidos']
+
+    requiere_aws = any(m['requiere_aws'] for m in modulos_a_ejecutar)
     if requiere_aws:
         if not verificar_aws_auth():
             print("\n❌ Autenticación AWS requerida. Ejecutar:")
             print("   aws-azure-login --profile default --mode=gui")
             print("\nAbortando.")
             sys.exit(1)
-    
+
     # Iniciar ejecución automáticamente
     print("\n" + "=" * 70)
     print("🚀 Iniciando ejecución automática...")
+    print(f"   (No_Entendidos ya ejecutado - se omitirá)")
     print("=" * 70)
-    
-    # Ejecutar módulos
+
+    # Ejecutar módulos (sin No_Entendidos)
     print_header("EJECUTANDO MÓDULOS")
     
     inicio_total = time.time()
     resultados = []
-    
-    for i, modulo in enumerate(MODULOS, 1):
-        resultado = ejecutar_modulo(modulo, i, len(MODULOS))
+
+    # Agregar No_Entendidos como ya ejecutado al resumen
+    resultados.append({
+        'nombre': 'No Entendimiento',
+        'exitoso': True,
+        'duracion': 0,
+        'mensaje': 'Ya ejecutado manualmente'
+    })
+
+    for i, modulo in enumerate(modulos_a_ejecutar, 1):
+        resultado = ejecutar_modulo(modulo, i, len(modulos_a_ejecutar))
         resultados.append(resultado)
-        
-        if i < len(MODULOS):
+
+        if i < len(modulos_a_ejecutar):
             print("\n⏸️  Pausa de 2 segundos antes del siguiente módulo...")
             time.sleep(2)
     
