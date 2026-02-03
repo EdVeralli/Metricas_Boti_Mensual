@@ -122,6 +122,16 @@ MODULOS = {
             'D6': 'Pushes Enviadas'
         }
     },
+    'contenidos_bot': {
+        'carpeta': 'Contenidos_Bot/output',
+        'patron': 'contenidos_bot_*.xlsx',
+        'patron_alternativo': None,
+        'celdas': {
+            'D7': 'Contenidos Activos',
+            'D8': 'Contenidos Relevantes'
+        },
+        'excluir_patron': '*_detalle_*'
+    },
     'no_entendimiento': {
         'carpeta': 'No_Entendidos/output',
         'patron': 'no_entendimiento_*.xlsx',
@@ -457,7 +467,7 @@ def mostrar_resumen(metricas, nombre_archivo):
     metricas_sin_valor = 0
     
     # Lista de todas las celdas de métricas
-    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D13', 'D14', 'D15', 'D16', 'D17']
+    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D13', 'D14', 'D15', 'D16', 'D17']
     
     for celda in celdas_metricas:
         valor = metricas.get(celda, '-')
@@ -469,6 +479,8 @@ def mostrar_resumen(metricas, nombre_archivo):
             'D4': 'Sesiones Abiertas',
             'D5': 'Sesiones Alcanzadas',
             'D6': 'Pushes Enviadas',
+            'D7': 'Contenidos Activos',
+            'D8': 'Contenidos Relevantes',
             'D13': 'No Entendimiento',
             'D14': 'Efectividad',
             'D15': 'CES',
@@ -508,6 +520,7 @@ def main():
     print("  • Sesiones Abiertas (D4)")
     print("  • Sesiones Alcanzadas (D5)")
     print("  • Pushes Enviadas (D6)")
+    print("  • Contenidos del Bot (D7, D8)")
     print("  • No Entendimiento (D13)")
     print("  • Feedback - Efectividad (D14)")
     print("  • Feedback - CES (D15)")
