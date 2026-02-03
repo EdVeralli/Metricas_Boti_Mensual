@@ -50,6 +50,13 @@ MODULOS = [
         'requiere_aws': True
     },
     {
+        'nombre': 'Contenidos del Bot',
+        'carpeta': 'Contenidos_Bot',
+        'script': 'Contenidos_Bot.py',
+        'celdas': 'D7, D8',
+        'requiere_aws': False
+    },
+    {
         'nombre': 'No Entendimiento',
         'carpeta': 'No_Entendidos',
         'scripts': ['athena_connector.py', 'No_Entendidos.py'],  # Ejecutar ambos en orden

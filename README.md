@@ -35,7 +35,7 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 
 ### Características Principales
 
-- ✅ **9 módulos independientes** que calculan 10 métricas diferentes
+- ✅ **10 módulos independientes** que calculan 12 métricas diferentes
 - ✅ **Configuración centralizada** a través de `config_fechas.txt`
 - ✅ **Ejecución automatizada** con `run_all.py`
 - ✅ **Consolidación automática** de todas las métricas en un dashboard único
@@ -68,6 +68,7 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 │     ├─ Pushes_Enviadas              → D6                   │
 │     ├─ Sesiones_Abiertas_Pushes     → D4                   │
 │     ├─ Sesiones_Alcanzadas_Pushes   → D5                   │
+│     ├─ Contenidos_Bot               → D7, D8               │
 │     ├─ Feedback_Efectividad         → D14                  │
 │     ├─ Feedback_CES                 → D15                  │
 │     ├─ Feedback_CSAT                → D16                  │
@@ -96,12 +97,12 @@ Este sistema procesa datos del chatbot Boti para calcular **17 métricas clave d
 
 #### 2. **run_all.py** (Orquestador Maestro)
 - Verifica que No_Entendidos ya fue ejecutado manualmente
-- Ejecuta los 8 módulos restantes secuencialmente
+- Ejecuta los 9 módulos restantes secuencialmente
 - Verifica credenciales AWS
 - Muestra progreso y resumen de ejecución
 - Duración total: 15-30 minutos (sin No_Entendidos)
 
-#### 3. **Módulos Independientes** (9 carpetas)
+#### 3. **Módulos Independientes** (10 carpetas)
 - Cada módulo calcula una o más métricas específicas
 - Genera Excel con estructura de dashboard estandarizada
 - Llena solo sus celdas correspondientes (D2-D17)
@@ -213,7 +214,7 @@ Procesa solo las primeras 2 semanas de diciembre.
 
 ## 🚀 Uso - Guía Rápida
 
-### Ejecución Mensual Completa (5 Pasos)
+### Ejecución Mensual Completa (6 Pasos)
 
 #### PASO 1: Configurar Período
 
@@ -272,11 +273,12 @@ Ejecutará los siguientes módulos:
   2. Pushes Enviadas (D6)
   3. Sesiones Abiertas por Pushes (D4)
   4. Sesiones Alcanzadas por Pushes (D5)
-  5. No Entendimiento (D13) ← Ya ejecutado manualmente
-  6. Feedback - Efectividad (D14)
-  7. Feedback - CES (D15)
-  8. Feedback - CSAT (D16)
-  9. Disponibilidad WhatsApp (D17)
+  5. Contenidos del Bot (D7, D8)
+  6. No Entendimiento (D13) ← Ya ejecutado manualmente
+  7. Feedback - Efectividad (D14)
+  8. Feedback - CES (D15)
+  9. Feedback - CSAT (D16)
+  10. Disponibilidad WhatsApp (D17)
 
 ✅ No_Entendidos ya ejecutado - se omitirá
 
@@ -287,8 +289,8 @@ Ejecutará los siguientes módulos:
 ================================================================================
 RESUMEN DE EJECUCIÓN
 ================================================================================
-📊 Total de módulos: 9
-✅ Exitosos: 9
+📊 Total de módulos: 10
+✅ Exitosos: 10
 ❌ Fallidos: 0
 ⏱️  Tiempo total: 15.3 minutos
 
@@ -300,7 +302,7 @@ RESUMEN DE EJECUCIÓN
 
 **Duración:** 15-30 minutos (sin No_Entendidos)
 
-#### PASO 4: Consolidar Resultados
+#### PASO 5: Consolidar Resultados
 
 ```bash
 python consolidar_excel.py
@@ -317,6 +319,7 @@ python consolidar_excel.py
   • Sesiones Abiertas (D4)
   • Sesiones Alcanzadas (D5)
   • Pushes Enviadas (D6)
+  • Contenidos del Bot (D7, D8)
   • No Entendimiento (D13)
   • Feedback - Efectividad (D14)
   • Feedback - CES (D15)
@@ -337,20 +340,22 @@ RESUMEN DE MÉTRICAS CONSOLIDADAS
   ✅ Sesiones Abiertas (D4): 12,345
   ✅ Sesiones Alcanzadas (D5): 15,678
   ✅ Pushes Enviadas (D6): 45,890
+  ✅ Contenidos Activos (D7): 720
+  ✅ Contenidos Relevantes (D8): 628
   ✅ No Entendimiento (D13): 11.70%
   ✅ Efectividad (D14): 87.5%
   ✅ CES (D15): 2.35
   ✅ CSAT (D16): 4.2
   ✅ Availability (D17): 99.8%
 
-📈 Total de métricas: 10
-✅ Con valor: 10
+📈 Total de métricas: 12
+✅ Con valor: 12
 ⚠️  Sin valor: 0
 
 ✨ CONSOLIDACIÓN COMPLETADA
 ```
 
-#### PASO 5: Calcular Tasa de Efectividad WEB+BOTI (Opcional)
+#### PASO 6: Calcular Tasa de Efectividad WEB+BOTI (Opcional)
 
 Este paso combina métricas de **Metricas_Boti_Mensual** y **Metricas_Web_Mensual** para calcular la tasa de efectividad ponderada.
 
@@ -405,11 +410,12 @@ efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
 | 2 | Pushes Enviadas | `Pushes_Enviadas/` | D6 | Mensajes push enviados | ✅ |
 | 3 | Sesiones Abiertas | `Sesiones_Abiertas_Pushes/` | D4 | Sesiones iniciadas por push | ✅ |
 | 4 | Sesiones Alcanzadas | `Sesiones_alcanzadas_pushes/` | D5 | Sesiones que recibieron push | ✅ |
-| 5 | No Entendimiento | `No_Entendidos/` | D13 | Tasa de no comprensión | ✅ |
-| 6 | Efectividad | `Feedback_Efectividad/` | D14 | % usuarios que lograron objetivo | ✅ |
-| 7 | CES | `Feedback_CES/` | D15 | Customer Effort Score | ✅ |
-| 8 | CSAT | `Feedback_CSAT/` | D16 | Customer Satisfaction | ✅ |
-| 9 | Disponibilidad | `Metricas_Boti_Disponibilidad/` | D17 | Uptime del servidor WhatsApp | ❌ |
+| 5 | Contenidos del Bot | `Contenidos_Bot/` | D7, D8 | Contenidos activos y relevantes | ❌ |
+| 6 | No Entendimiento | `No_Entendidos/` | D13 | Tasa de no comprensión | ✅ |
+| 7 | Efectividad | `Feedback_Efectividad/` | D14 | % usuarios que lograron objetivo | ✅ |
+| 8 | CES | `Feedback_CES/` | D15 | Customer Effort Score | ✅ |
+| 9 | CSAT | `Feedback_CSAT/` | D16 | Customer Satisfaction | ✅ |
+| 10 | Disponibilidad | `Metricas_Boti_Disponibilidad/` | D17 | Uptime del servidor WhatsApp | ❌ |
 
 ### Descripción de Cada Módulo
 
@@ -433,7 +439,22 @@ efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
 **Query:** Sesiones que recibieron al menos un push
 **Duración:** ~2 minutos
 
-#### 5. No Entendimiento (Módulo Complejo)
+#### 5. Contenidos del Bot
+**Script:** `Contenidos_Bot.py`
+**Fuente:** Archivos TSV exportados de Botmaker (`rules-*.tsv`)
+**Requiere AWS:** No
+
+**Métricas Calculadas:**
+- D7: Contenidos activos en Botmaker (topics prendidos)
+- D8: Contenidos relevantes para el usuario (filtrados sin internos/push/login)
+
+**Archivos generados:**
+- `contenidos_bot_{mes}_{año}.xlsx` - Dashboard con métricas D7, D8
+- `contenidos_bot_detalle_{mes}_{año}.xlsx` - Detalle completo de contenidos
+
+**Nota:** Requiere 2 archivos TSV de Botmaker en la carpeta `Contenidos_Bot/` (mes actual y mes anterior). Se auto-detectan los 2 más recientes.
+
+#### 6. No Entendimiento (Módulo Complejo)
 **Scripts:**
 1. `athena_connector.py` - Descarga 3 CSVs grandes (~25 GB)
 2. `No_Entendidos.py` - Procesa y calcula D13
@@ -452,22 +473,22 @@ efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
 - Letra: ~0.1%
 - **D13 = Nada + NE ≈ 11-12%**
 
-#### 6. Feedback - Efectividad
+#### 7. Feedback - Efectividad
 **Script:** `Feedback_Efectividad.py`
 **Query:** Tasa de transacciones completadas
 **Duración:** ~2 minutos
 
-#### 7. Feedback - CES (Customer Effort Score)
+#### 8. Feedback - CES (Customer Effort Score)
 **Script:** `Feedback_CES.py`
 **Query:** Promedio ponderado de facilidad de uso (1-5)
 **Duración:** ~2 minutos
 
-#### 8. Feedback - CSAT (Customer Satisfaction)
+#### 9. Feedback - CSAT (Customer Satisfaction)
 **Script:** `Feedback_CSAT.py`
 **Query:** Promedio de satisfacción del usuario (1-5)
 **Duración:** ~2 minutos
 
-#### 9. Disponibilidad WhatsApp
+#### 10. Disponibilidad WhatsApp
 **Script:** `WhatsApp_Availability.py`
 **Tecnología:** Web scraping con Selenium
 **Fuente:** https://metastatus.com/whatsapp-business-api
@@ -479,7 +500,7 @@ efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
 
 ### Estructura del Dashboard Consolidado
 
-El dashboard final contiene **17 filas** de indicadores. **10 están implementadas** (D2-D6, D13-D17), las restantes (D7-D12) son responsabilidad de otro equipo.
+El dashboard final contiene **17 filas** de indicadores. **12 están implementadas** (D2-D8, D13-D17), las restantes (D9-D12) son responsabilidad de otro equipo.
 
 | Fila | Indicador | Descripción | Valor | Estado |
 |------|-----------|-------------|-------|--------|
@@ -489,8 +510,8 @@ El dashboard final contiene **17 filas** de indicadores. **10 están implementad
 | **4** | Sesiones abiertas por Pushes | Sesiones iniciadas con push | 12,345 | ✅ Implementado |
 | **5** | Sesiones Alcanzadas por Pushes | Sesiones que recibieron push | 15,678 | ✅ Implementado |
 | **6** | Mensajes Pushes Enviados | Q de mensajes push | 45,890 | ✅ Implementado |
-| **7** | Contenidos en Botmaker | Contenidos activos | - | ⚠️ Otro equipo |
-| **8** | Contenidos Prendidos para el USUARIO | Contenidos visibles | - | ⚠️ Otro equipo |
+| **7** | Contenidos en Botmaker | Contenidos activos | 720 | ✅ Implementado |
+| **8** | Contenidos Prendidos para el USUARIO | Contenidos relevantes | 628 | ✅ Implementado |
 | **9** | Interacciones | Q Interacciones | - | ⚠️ Otro equipo |
 | **10** | Trámites, solicitudes y turnos | Q Trámites disponibles | - | ⚠️ Otro equipo |
 | **11** | Contenidos más consultados | Top 10 | - | ⚠️ Otro equipo |
@@ -550,7 +571,14 @@ Metricas_Boti_Mensual/                          ← Repositorio raíz
 │   │   └── sesiones_alcanzadas_pushes_diciembre_2025.xlsx
 │   └── requirements.txt
 │
-├── No_Entendidos/                              ← Módulo 5 (complejo)
+├── Contenidos_Bot/                             ← Módulo 5
+│   ├── Contenidos_Bot.py
+│   ├── rules-*.tsv                            ← Exportados de Botmaker
+│   └── output/
+│       ├── contenidos_bot_diciembre_2025.xlsx
+│       └── contenidos_bot_detalle_diciembre_2025.xlsx
+│
+├── No_Entendidos/                              ← Módulo 6 (complejo)
 │   ├── README.md                               ← Documentación detallada
 │   ├── athena_connector.py                     ← Paso 1: Descarga datos
 │   ├── No_Entendidos.py                        ← Paso 2: Calcula métricas
@@ -569,27 +597,27 @@ Metricas_Boti_Mensual/                          ← Repositorio raíz
 │   ├── metricas_boti_diciembre_2025.json       ← Datos crudos
 │   └── requirements.txt
 │
-├── Feedback_Efectividad/                       ← Módulo 6
+├── Feedback_Efectividad/                       ← Módulo 7
 │   ├── Feedback_Efectividad.py
 │   ├── output/
 │   │   └── feedback_efectividad_diciembre_2025.xlsx
 │   └── requirements.txt
 │
-├── Feedback_CES/                               ← Módulo 7
+├── Feedback_CES/                               ← Módulo 8
 │   ├── Feedback_CES.py
 │   ├── output/
 │   │   ├── feedback_ces_detalle_diciembre_2025.xlsx
 │   │   └── feedback_ces_diciembre_2025.xlsx
 │   └── requirements.txt
 │
-├── Feedback_CSAT/                              ← Módulo 8
+├── Feedback_CSAT/                              ← Módulo 9
 │   ├── Feedback_CSAT.py
 │   ├── output/
 │   │   ├── feedback_csat_detalle_diciembre_2025.xlsx
 │   │   └── feedback_csat_diciembre_2025.xlsx
 │   └── requirements.txt
 │
-└── Metricas_Boti_Disponibilidad/               ← Módulo 9
+└── Metricas_Boti_Disponibilidad/               ← Módulo 10
     ├── WhatsApp_Availability.py
     ├── output/
     │   └── whatsapp_availability_20251215_143000.xlsx
@@ -614,7 +642,7 @@ python run_all.py
 - ✅ Si No_Entendidos no fue ejecutado, muestra instrucciones y aborta
 - ✅ Verifica credenciales AWS antes de empezar
 - ✅ Lee `config_fechas.txt` y valida configuración
-- ✅ Ejecuta los 8 módulos restantes en orden
+- ✅ Ejecuta los 9 módulos restantes en orden
 - ✅ Muestra progreso en tiempo real
 - ✅ Genera resumen final con métricas de ejecución
 
@@ -623,11 +651,12 @@ python run_all.py
 2. Pushes Enviadas
 3. Sesiones Abiertas por Pushes
 4. Sesiones Alcanzadas por Pushes
-5. ~~No Entendimiento~~ → **Debe ejecutarse manualmente ANTES**
-6. Feedback - Efectividad
-7. Feedback - CES
-8. Feedback - CSAT
-9. Disponibilidad WhatsApp
+5. Contenidos del Bot
+6. ~~No Entendimiento~~ → **Debe ejecutarse manualmente ANTES**
+7. Feedback - Efectividad
+8. Feedback - CES
+9. Feedback - CSAT
+10. Disponibilidad WhatsApp
 
 **Duración Total:** 15-30 minutos (sin No_Entendidos)
 
@@ -872,13 +901,17 @@ xcopy No_Entendidos\output\*.xlsx backup\diciembre_2025\ /S
 ## 🔄 Changelog
 
 ### v2.4 (Febrero 2026) - **ACTUAL**
+- ✅ **NUEVO:** `Contenidos_Bot.py` - Módulo para contar contenidos activos y relevantes del bot (D7, D8)
+- ✅ **Contenidos_Bot:** Convertido de notebook Jupyter a script Python standalone
+- ✅ **Contenidos_Bot:** Auto-detecta archivos TSV de Botmaker, maneja BOM en columnas
+- ✅ **run_all.py:** Integrado módulo Contenidos_Bot (sin AWS)
 - ✅ **run_all.py:** Ahora verifica que No_Entendidos ya fue ejecutado antes de continuar
 - ✅ **run_all.py:** No_Entendidos debe ejecutarse manualmente (requiere interacción)
 - ✅ **athena_connector.py:** Pausa antes de cada query para revalidar credenciales AWS
 - ✅ **athena_connector.py:** Busca config_fechas.txt en la raíz del repo
 - ✅ **Feedback_Efectividad.py:** Template de Excel unificado (igual que CES/CSAT)
 - ✅ **Feedback_Efectividad.py:** Sin colores de fondo en celdas
-- ✅ README actualizado con nuevo flujo de trabajo
+- ✅ README actualizado con nuevo flujo de trabajo y módulo Contenidos_Bot
 
 ### v2.3 (Enero 2026)
 - ✅ **NUEVO:** `calcular_efectividad_web_boti.py` - Calcula tasa de efectividad combinada WEB+BOTI
@@ -941,5 +974,5 @@ Uso interno - Gobierno de la Ciudad de Buenos Aires
 
 ---
 
-**Última actualización:** 1 de febrero de 2026
+**Última actualización:** 3 de febrero de 2026
 **Versión:** 2.4
