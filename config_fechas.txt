@@ -3,8 +3,8 @@
 # ========================================
 
 # MODO 1: Mes completo (comportamiento original)
-MES=12
-AÑO=2025
+MES=01
+AÑO=2026
 
 # MODO 2: Rango de fechas personalizado (NUEVO)
 # Descomentar estas lineas para usar rango personalizado:
