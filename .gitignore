@@ -49,6 +49,11 @@ credentials
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+nul
+
+# Python
+__pycache__/
+*.pyc
 
 # macOS
 .DS_Store
