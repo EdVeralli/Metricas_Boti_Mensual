@@ -168,6 +168,15 @@ MODULOS = {
         },
         'excluir_patron': '*_detalle_*'  # Excluir archivos _detalle
     },
+    'contenidos_consultados': {
+        'carpeta': 'Contenidos_Consultados/output',
+        'patron': 'contenidos_consultados_*.xlsx',
+        'patron_alternativo': None,
+        'celdas': {
+            'D11': 'Contenidos Consultados'
+        },
+        'excluir_patron': '*_detalle_*'
+    },
     'disponibilidad': {
         'carpeta': 'Metricas_Boti_Disponibilidad/output',
         'patron': 'whatsapp_availability_*.xlsx',
@@ -432,7 +441,9 @@ def crear_dashboard_consolidado(metricas, periodo):
             ws[celda_valor].border = estilos['valor']['border']
             
             # Aplicar formato específico según la celda
-            if celda_valor == 'D13':  # No Entendimiento (porcentaje)
+            if celda_valor == 'D11':  # Contenidos Consultados (texto multilínea Top 10)
+                ws[celda_valor].alignment = Alignment(wrap_text=True, vertical='top')
+            elif celda_valor == 'D13':  # No Entendimiento (porcentaje)
                 ws[celda_valor].number_format = '0.00%'
             elif celda_valor == 'D14':  # Efectividad (porcentaje)
                 ws[celda_valor].number_format = '0.00%'
@@ -445,7 +456,12 @@ def crear_dashboard_consolidado(metricas, periodo):
     
     # Ajustar altura de filas
     for fila in range(1, 18):
-        ws.row_dimensions[fila].height = 30 if fila == 1 else 25
+        if fila == 1:
+            ws.row_dimensions[fila].height = 30
+        elif fila == 11:
+            ws.row_dimensions[fila].height = 180  # Top 10 multilínea
+        else:
+            ws.row_dimensions[fila].height = 25
     
     # Generar nombre de archivo basado en el periodo del config
     periodo_config = leer_config_fechas()
@@ -467,7 +483,7 @@ def mostrar_resumen(metricas, nombre_archivo):
     metricas_sin_valor = 0
     
     # Lista de todas las celdas de métricas
-    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D13', 'D14', 'D15', 'D16', 'D17']
+    celdas_metricas = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D11', 'D13', 'D14', 'D15', 'D16', 'D17']
     
     for celda in celdas_metricas:
         valor = metricas.get(celda, '-')
@@ -481,6 +497,7 @@ def mostrar_resumen(metricas, nombre_archivo):
             'D6': 'Pushes Enviadas',
             'D7': 'Contenidos Activos',
             'D8': 'Contenidos Relevantes',
+            'D11': 'Contenidos Consultados',
             'D13': 'No Entendimiento',
             'D14': 'Efectividad',
             'D15': 'CES',
@@ -521,6 +538,7 @@ def main():
     print("  • Sesiones Alcanzadas (D5)")
     print("  • Pushes Enviadas (D6)")
     print("  • Contenidos del Bot (D7, D8)")
+    print("  • Contenidos Consultados (D11)")
     print("  • No Entendimiento (D13)")
     print("  • Feedback - Efectividad (D14)")
     print("  • Feedback - CES (D15)")

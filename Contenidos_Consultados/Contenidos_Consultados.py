@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 '''
-Script para descargar y procesar Contenidos Más Consultados desde Athena
-Descarga la vista boti_vw_buscador_rulename y calcula el Top 20 de contenidos
-Genera CSV y Excel con dashboard (celda D11) y detalle
+Script para descargar y procesar Contenidos Consultados desde Athena
+Descarga la vista boti_vw_buscador_rulename y genera tabla completa de contenidos.
 
-Lógica extraída del Power BI "Buscador de Contenidos más Consultados":
+Lógica extraída del Power BI "Consultas por dia 1.pbix":
 1. Filtrar por rango de fechas del período
 2. Excluir contenidos no relevantes (onboardings, pushes, bifurcadores, etc.)
-3. Agrupar por rulename y sumar sesiones diarias
-4. Ordenar por suma de sesiones (descendente)
-5. Tomar Top 20
+3. Agrupar por rulename y sumar sesiones
+4. Mostrar TODOS los contenidos con % del total
+5. Generar serie temporal diaria (Histórico)
 
 MODOS SOPORTADOS:
 1. MES COMPLETO: Especificar MES y AÑO
@@ -25,7 +24,7 @@ from datetime import datetime
 from calendar import monthrange
 import os
 import openpyxl
-from openpyxl.styles import Font, Alignment, Border, Side
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
 # ==================== CONFIGURACION ====================
 CONFIG = {
@@ -35,6 +34,10 @@ CONFIG = {
     'output_folder': 'output',
     'config_file': '../config_fechas.txt'  # Config centralizado en raiz del proyecto
 }
+
+# Flag para activar/desactivar las exclusiones de contenidos.
+# Poner en False para ver TODOS los contenidos sin filtrar.
+APLICAR_EXCLUSIONES = True
 
 # Lista de contenidos a EXCLUIR (extraída del Power BI)
 # Incluye: onboardings, pushes, bifurcadores, feedback, login, menús internos, etc.
@@ -335,13 +338,14 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     '''
     Procesa el DataFrame descargado y calcula las métricas de contenidos consultados.
 
-    Lógica (extraída del Power BI):
+    Lógica (extraída del Power BI "Consultas por dia 1"):
     1. Filtrar por rango de fechas
-    2. Excluir contenidos no relevantes
+    2. Excluir contenidos no relevantes (si APLICAR_EXCLUSIONES está activo)
     3. Agrupar por rulename y sumar sesiones
-    4. Ordenar descendente y tomar Top 20
+    4. Calcular %GT (porcentaje del gran total)
+    5. Agrupar por fecha para serie temporal diaria
 
-    Retorna: (df_top20, total_contenidos_relevantes)
+    Retorna: (df_contenidos, total_contenidos, df_historico)
     '''
     print("    [INFO] Procesando datos...")
 
@@ -374,11 +378,11 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
 
     if rulename_col is None:
         print("    [ERROR] No se encontró columna de rulename")
-        return None, None
+        return None, None, None
 
     if sesiones_col is None:
         print("    [ERROR] No se encontró columna de sesiones")
-        return None, None
+        return None, None, None
 
     print("    [INFO] Usando columnas: rulename='{}', sesiones='{}'".format(rulename_col, sesiones_col))
 
@@ -397,95 +401,182 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
         print("    [INFO] Registros después de filtro de fecha: {:,}".format(len(df_filtrado)))
 
     # 2. Excluir contenidos no relevantes
-    print("    [INFO] Excluyendo {} contenidos no relevantes...".format(len(CONTENIDOS_EXCLUIR)))
-    df_filtrado = df_filtrado[~df_filtrado[rulename_col].isin(CONTENIDOS_EXCLUIR)]
-    print("    [INFO] Registros después de exclusiones: {:,}".format(len(df_filtrado)))
+    if APLICAR_EXCLUSIONES:
+        print("    [INFO] Excluyendo {} contenidos no relevantes...".format(len(CONTENIDOS_EXCLUIR)))
+        df_filtrado = df_filtrado[~df_filtrado[rulename_col].isin(CONTENIDOS_EXCLUIR)]
+        print("    [INFO] Registros después de exclusiones: {:,}".format(len(df_filtrado)))
+    else:
+        print("    [INFO] Exclusiones DESACTIVADAS (APLICAR_EXCLUSIONES = False)")
 
     # 3. Agrupar por rulename y sumar sesiones
     df_agrupado = df_filtrado.groupby(rulename_col)[sesiones_col].sum().reset_index()
-    df_agrupado.columns = ['Rulename', 'Sesiones_Diarias']
+    df_agrupado.columns = ['Rulename', 'Suma de Sesiones']
 
     # 4. Ordenar descendente
-    df_agrupado = df_agrupado.sort_values('Sesiones_Diarias', ascending=False)
+    df_agrupado = df_agrupado.sort_values('Suma de Sesiones', ascending=False).reset_index(drop=True)
 
     total_contenidos = len(df_agrupado)
+    total_sesiones = df_agrupado['Suma de Sesiones'].sum()
     print("    [INFO] Total contenidos relevantes únicos: {:,}".format(total_contenidos))
+    print("    [INFO] Total sesiones: {:,}".format(int(total_sesiones)))
 
-    # 5. Tomar Top 20
-    df_top20 = df_agrupado.head(20).copy()
-    df_top20['Ranking'] = range(1, len(df_top20) + 1)
-    df_top20 = df_top20[['Ranking', 'Rulename', 'Sesiones_Diarias']]
+    # 5. Calcular %GT (porcentaje del gran total)
+    if total_sesiones > 0:
+        df_agrupado['% del Total'] = df_agrupado['Suma de Sesiones'] / total_sesiones
+    else:
+        df_agrupado['% del Total'] = 0
 
+    # 6. Serie temporal diaria (Histórico)
+    df_historico = None
+    if fecha_col:
+        df_historico = df_filtrado.groupby(fecha_col)[sesiones_col].sum().reset_index()
+        df_historico.columns = ['Fecha', 'Sesiones diarias']
+        df_historico = df_historico.sort_values('Fecha').reset_index(drop=True)
+        print("    [INFO] Días en serie temporal: {}".format(len(df_historico)))
+
+    # Mostrar Top 10 en consola
     print("")
-    print("    TOP 20 CONTENIDOS MÁS CONSULTADOS:")
-    print("    " + "-" * 60)
-    for idx, row in df_top20.iterrows():
-        print("    {:2d}. {:40s} {:>10,}".format(
-            row['Ranking'],
-            row['Rulename'][:40],
-            int(row['Sesiones_Diarias'])
+    print("    TOP 10 CONTENIDOS MÁS CONSULTADOS:")
+    print("    " + "-" * 70)
+    for idx, row in df_agrupado.head(10).iterrows():
+        print("    {:2d}. {:45s} {:>10,}  ({:.2f}%)".format(
+            idx + 1,
+            row['Rulename'][:45],
+            int(row['Suma de Sesiones']),
+            row['% del Total'] * 100
         ))
 
-    return df_top20, total_contenidos
+    return df_agrupado, total_contenidos, df_historico
 
-def create_detail_excel(filepath, df_top20, descripcion):
-    '''Crea un Excel con el detalle del Top 20'''
+def create_detail_excel(filepath, df_contenidos, df_historico, descripcion):
+    '''Crea un Excel con 2 hojas: Buscador de contenidos + Historico'''
 
     print("    [INFO] Creando Excel detallado...")
 
     wb = openpyxl.Workbook()
+
+    # ===== HOJA 1: Buscador de contenidos =====
     ws = wb.active
-    ws.title = 'Top 20 Contenidos'
+    ws.title = 'Buscador de contenidos'
 
     # Estilos
-    header_font = Font(bold=True, size=11)
-    header_fill = openpyxl.styles.PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    header_font_white = Font(bold=True, size=11, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, size=11, color="FFFFFF")
+    bold_font = Font(bold=True, size=11)
+    card_font = Font(bold=True, size=12)
+    card_value_font = Font(bold=True, size=14)
 
-    # Título
-    ws['A1'] = 'TOP 20 CONTENIDOS MÁS CONSULTADOS'
-    ws['A1'].font = Font(bold=True, size=14)
+    total_contenidos = len(df_contenidos)
+    total_sesiones = int(df_contenidos['Suma de Sesiones'].sum())
+
+    # Cards en filas 1-2
+    ws['A1'] = 'Cantidad de Rulenames'
+    ws['A1'].font = card_font
+    ws['B1'] = total_contenidos
+    ws['B1'].font = card_value_font
+    ws['B1'].number_format = '#,##0'
+
+    ws['D1'] = 'Total Sesiones'
+    ws['D1'].font = card_font
+    ws['E1'] = total_sesiones
+    ws['E1'].font = card_value_font
+    ws['E1'].number_format = '#,##0'
+
     ws['A2'] = 'Período: {}'.format(descripcion)
-    ws['A2'].font = Font(size=11)
+    ws['A2'].font = Font(size=10, italic=True)
 
     # Headers de tabla (fila 4)
-    ws['A4'] = 'Ranking'
-    ws['B4'] = 'Contenido (Rulename)'
-    ws['C4'] = 'Sesiones'
+    ws['A4'] = 'Rulename'
+    ws['B4'] = 'Suma de Sesiones'
+    ws['C4'] = '% del Total'
 
     for col in ['A', 'B', 'C']:
-        ws['{}4'.format(col)].font = header_font_white
+        ws['{}4'.format(col)].font = header_font
         ws['{}4'.format(col)].fill = header_fill
 
-    # Datos
-    for idx, row in df_top20.iterrows():
-        fila = 5 + row['Ranking'] - 1
-        ws['A{}'.format(fila)] = row['Ranking']
-        ws['B{}'.format(fila)] = row['Rulename']
-        ws['C{}'.format(fila)] = int(row['Sesiones_Diarias'])
-        ws['C{}'.format(fila)].number_format = '#,##0'
+    # Datos (todos los contenidos)
+    for idx, row in df_contenidos.iterrows():
+        fila = 5 + idx
+        ws['A{}'.format(fila)] = row['Rulename']
+        ws['B{}'.format(fila)] = int(row['Suma de Sesiones'])
+        ws['B{}'.format(fila)].number_format = '#,##0'
+        ws['C{}'.format(fila)] = row['% del Total']
+        ws['C{}'.format(fila)].number_format = '0.00%'
 
-    # Total
-    fila_total = 5 + len(df_top20)
-    ws['A{}'.format(fila_total)] = ''
-    ws['B{}'.format(fila_total)] = 'TOTAL TOP 20'
-    ws['B{}'.format(fila_total)].font = Font(bold=True)
-    ws['C{}'.format(fila_total)] = df_top20['Sesiones_Diarias'].sum()
-    ws['C{}'.format(fila_total)].font = Font(bold=True)
-    ws['C{}'.format(fila_total)].number_format = '#,##0'
+    # Fila de totales
+    fila_total = 5 + total_contenidos
+    ws['A{}'.format(fila_total)] = 'TOTAL'
+    ws['A{}'.format(fila_total)].font = bold_font
+    ws['B{}'.format(fila_total)] = total_sesiones
+    ws['B{}'.format(fila_total)].font = bold_font
+    ws['B{}'.format(fila_total)].number_format = '#,##0'
+    ws['C{}'.format(fila_total)] = 1.0
+    ws['C{}'.format(fila_total)].font = bold_font
+    ws['C{}'.format(fila_total)].number_format = '0.00%'
 
     # Ajustar anchos
-    ws.column_dimensions['A'].width = 10
-    ws.column_dimensions['B'].width = 60
-    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['A'].width = 60
+    ws.column_dimensions['B'].width = 18
+    ws.column_dimensions['C'].width = 14
+    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['E'].width = 18
+
+    # ===== HOJA 2: Historico =====
+    if df_historico is not None and len(df_historico) > 0:
+        ws2 = wb.create_sheet('Historico')
+
+        # Headers
+        ws2['A1'] = 'Fecha'
+        ws2['B1'] = 'Sesiones diarias'
+        ws2['A1'].font = header_font
+        ws2['A1'].fill = header_fill
+        ws2['B1'].font = header_font
+        ws2['B1'].fill = header_fill
+
+        # Datos
+        for idx, row in df_historico.iterrows():
+            fila = 2 + idx
+            ws2['A{}'.format(fila)] = row['Fecha']
+            ws2['A{}'.format(fila)].number_format = 'DD/MM/YYYY'
+            ws2['B{}'.format(fila)] = int(row['Sesiones diarias'])
+            ws2['B{}'.format(fila)].number_format = '#,##0'
+
+        # Fila de total
+        fila_total_hist = 2 + len(df_historico)
+        ws2['A{}'.format(fila_total_hist)] = 'TOTAL'
+        ws2['A{}'.format(fila_total_hist)].font = bold_font
+        ws2['B{}'.format(fila_total_hist)] = int(df_historico['Sesiones diarias'].sum())
+        ws2['B{}'.format(fila_total_hist)].font = bold_font
+        ws2['B{}'.format(fila_total_hist)].number_format = '#,##0'
+
+        # Ajustar anchos
+        ws2.column_dimensions['A'].width = 15
+        ws2.column_dimensions['B'].width = 18
 
     wb.save(filepath)
-    print("    [OK] Excel detallado creado")
+    print("    [OK] Excel detallado creado ({} contenidos, {} hojas)".format(
+        total_contenidos,
+        len(wb.sheetnames)
+    ))
+
+def format_top10_text(df_contenidos):
+    '''
+    Genera el texto formateado del Top 10 para la celda D11 del dashboard.
+    Formato: "1- Nombre contenido: (123.456)\n2- Otro contenido: (78.901)\n..."
+    '''
+    top10 = df_contenidos.head(10)
+    lines = []
+    for idx, row in top10.iterrows():
+        sesiones = int(row['Suma de Sesiones'])
+        # Formato con punto como separador de miles (estilo argentino)
+        sesiones_fmt = '{:,}'.format(sesiones).replace(',', '.')
+        lines.append('{}- {}: ({})'.format(idx + 1, row['Rulename'], sesiones_fmt))
+    return '\n'.join(lines)
 
 def create_dashboard(filepath, valor_d11, modo, mes, anio, fecha_inicio, fecha_fin):
     '''
     Crea el Excel Dashboard con la estructura estándar.
-    Llena SOLO la celda D11 (Contenidos más consultados)
+    Llena SOLO la celda D11 (Contenidos más consultados - Top 10 formateado)
     '''
 
     print("    [INFO] Creando Dashboard...")
@@ -549,10 +640,11 @@ def create_dashboard(filepath, valor_d11, modo, mes, anio, fecha_inicio, fecha_f
     ws['B10'] = 'Trámites, solicitudes y turnos'
     ws['C10'] = 'Q Trámites, solicitudes y turnos disponibles'
 
-    ws['B11'] = 'contenidos mas consultados'
-    ws['C11'] = 'Q Contenidos con más interacciones en el mes (Top 20)'
+    ws['B11'] = 'Contenidos más consultados'
+    ws['C11'] = 'Q Contenidos con más interacciones en el mes'
     if valor_d11 is not None:
         ws['D11'] = valor_d11
+        ws['D11'].alignment = Alignment(wrap_text=True, vertical='top')
 
     ws['B12'] = 'Derivaciones'
     ws['C12'] = 'Q Derivaciones'
@@ -580,12 +672,14 @@ def create_dashboard(filepath, valor_d11, modo, mes, anio, fecha_inicio, fecha_f
     # Ajustar anchos
     ws.column_dimensions['B'].width = 35
     ws.column_dimensions['C'].width = 50
-    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['D'].width = 50
 
     wb.save(filepath)
 
     if valor_d11 is not None:
-        print("    [OK] Dashboard creado (D11 = {:,})".format(valor_d11))
+        # Mostrar preview del Top 10
+        preview = valor_d11.split('\n')[0]
+        print("    [OK] Dashboard creado (D11 = Top 10, ej: {})".format(preview))
     else:
         print("    [OK] Dashboard creado (D11 vacío)")
 
@@ -677,22 +771,23 @@ def execute_query_and_save():
         # Procesar datos
         print("")
         print("Procesando contenidos consultados...")
-        df_top20, total_contenidos = procesar_contenidos(df, fecha_inicio, fecha_fin)
+        df_contenidos, total_contenidos, df_historico = procesar_contenidos(df, fecha_inicio, fecha_fin)
 
-        if df_top20 is None:
+        if df_contenidos is None:
             print("[ERROR] No se pudo procesar los datos")
             return None
 
-        # Generar Excel detallado
+        # Generar Excel detallado (2 hojas)
         print("")
         print("Generando Excel detallado...")
-        create_detail_excel(local_path_detalle, df_top20, descripcion)
+        create_detail_excel(local_path_detalle, df_contenidos, df_historico, descripcion)
 
         # Generar Dashboard
         print("")
         print("Generando Dashboard...")
-        # D11 = cantidad de contenidos relevantes únicos
-        create_dashboard(local_path_dashboard, total_contenidos, modo, mes, anio, fecha_inicio, fecha_fin)
+        # D11 = Top 10 contenidos formateado como texto multilínea
+        top10_text = format_top10_text(df_contenidos)
+        create_dashboard(local_path_dashboard, top10_text, modo, mes, anio, fecha_inicio, fecha_fin)
 
         print("")
         print("=" * 60)
@@ -702,11 +797,13 @@ def execute_query_and_save():
         print("          - Datos crudos de la vista Athena")
         print("")
         print("    [EXCEL DETALLE] {}".format(filename_detalle))
-        print("          - Top 20 contenidos más consultados")
-        print("          - Total sesiones Top 20: {:,}".format(int(df_top20['Sesiones_Diarias'].sum())))
+        print("          - Hoja 'Buscador de contenidos': {} contenidos con %GT".format(total_contenidos))
+        if df_historico is not None:
+            print("          - Hoja 'Historico': {} días de serie temporal".format(len(df_historico)))
+        print("          - Total sesiones: {:,}".format(int(df_contenidos['Suma de Sesiones'].sum())))
         print("")
         print("    [DASHBOARD] {}".format(filename_dashboard))
-        print("          - Celda D11 = {:,} (contenidos relevantes únicos)".format(total_contenidos))
+        print("          - Celda D11 = Top 10 contenidos más consultados")
 
         print("")
         print("=" * 60)
@@ -727,18 +824,22 @@ def execute_query_and_save():
 if __name__ == "__main__":
     print("")
     print("=" * 60)
-    print("SCRIPT: CONTENIDOS MAS CONSULTADOS - QUERY ATHENA")
+    print("SCRIPT: CONTENIDOS CONSULTADOS - QUERY ATHENA")
     print("=" * 60)
     print("Rol requerido: PIBAConsumeBoti")
-    print("Salida: CSV + Excel Detalle + Dashboard (celda D11)")
+    print("Salida: CSV + Excel Detalle (2 hojas) + Dashboard (celda D11)")
     print("Query: SELECT * FROM boti_vw_buscador_rulename")
     print("")
     print("LÓGICA:")
     print("  1. Descargar vista completa de Athena")
     print("  2. Filtrar por rango de fechas del período")
-    print("  3. Excluir contenidos no relevantes ({} reglas)".format(len(CONTENIDOS_EXCLUIR)))
+    if APLICAR_EXCLUSIONES:
+        print("  3. Excluir contenidos no relevantes ({} reglas)".format(len(CONTENIDOS_EXCLUIR)))
+    else:
+        print("  3. Exclusiones DESACTIVADAS")
     print("  4. Agrupar por rulename y sumar sesiones")
-    print("  5. Generar Top 20 ordenado por sesiones")
+    print("  5. Generar tabla completa con % del total")
+    print("  6. Generar serie temporal diaria (Histórico)")
     print("")
     print("MODOS:")
     print("  [1] MES COMPLETO: MES + AÑO")
