@@ -189,7 +189,7 @@ def leer_config_fechas():
                 mes_nombre = meses.get(mes_num, f"mes_{mes_num}")
                 return True, mes_nombre, anio
             elif mes and anio:
-                mes_nombre = meses.get(mes, f"mes_{mes}")
+                mes_nombre = meses.get(mes.lstrip('0') or '1', f"mes_{mes}")
                 print(f"📅 Período: {mes_nombre} {anio} (mes completo)")
                 return True, mes_nombre, anio
             else:
@@ -198,6 +198,50 @@ def leer_config_fechas():
     except Exception as e:
         print(f"❌ Error al leer config: {str(e)}")
         return False, None, None
+
+
+def verificar_tsv_contenidos_bot(mes_nombre, anio):
+    '''
+    Verifica los archivos TSV disponibles para Contenidos_Bot y muestra
+    claramente qué se necesita y qué falta.
+    Retorna True si hay al menos 2 TSVs (puede ejecutarse), False si no.
+    '''
+    import glob as glob_module
+
+    carpeta = 'Contenidos_Bot'
+    patron = os.path.join(carpeta, 'rules-*.tsv')
+    archivos = sorted(glob_module.glob(patron))
+
+    print(f"\n📂 Carpeta: {carpeta}/")
+    print(f"   El script necesita 2 archivos TSV exportados desde Botmaker:")
+    print(f"   • TSV anterior → estado del mes pasado  (ej: rules-2026.01.XX...tsv)")
+    print(f"   • TSV actual   → estado de cierre de {mes_nombre} {anio}  (ej: rules-2026.03.XX...tsv)")
+
+    if not archivos:
+        print(f"\n   ❌ No hay archivos TSV en {carpeta}/")
+        print(f"   → Exportá 2 TSV desde Botmaker y copiálos a {carpeta}/")
+        return False
+
+    print(f"\n   Archivos TSV encontrados ({len(archivos)}):")
+    for f in archivos:
+        print(f"     • {os.path.basename(f)}")
+
+    if len(archivos) < 2:
+        ultimo = os.path.basename(archivos[-1])
+        print(f"\n   ❌ Falta 1 TSV. Solo hay: {ultimo}")
+        print(f"   → Exportá un TSV nuevo desde Botmaker (del estado actual del bot,")
+        print(f"     principios de marzo {anio}) y copiálo a {carpeta}/")
+        print(f"   → Así quedará:")
+        print(f"     • {ultimo}  ← mes anterior (ya está)")
+        print(f"     • rules-2026.03.XX-XX.XX.tsv  ← mes actual (falta este)")
+        return False
+    else:
+        anterior = os.path.basename(archivos[-2])
+        actual   = os.path.basename(archivos[-1])
+        print(f"\n   ✅ Se usarán:")
+        print(f"     • Mes anterior: {anterior}")
+        print(f"     • Mes actual:   {actual}")
+        return True
 
 
 def verificar_no_entendidos_ejecutado(mes_nombre, anio):
@@ -259,8 +303,12 @@ def ejecutar_modulo(modulo, numero, total):
                 duracion = fin - inicio
 
                 print(f"  ❌ Error en {script}")
-                print(f"\n  Salida de error:")
-                print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
+                if result.stdout:
+                    print(f"\n  Salida estándar (últimas líneas):")
+                    print(result.stdout[-1000:] if len(result.stdout) > 1000 else result.stdout)
+                if result.stderr:
+                    print(f"\n  Salida de error:")
+                    print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
                 return {
                     'nombre': modulo['nombre'],
                     'exitoso': False,
@@ -332,11 +380,26 @@ def mostrar_resumen(resultados, tiempo_total):
 def main():
     '''Función principal'''
     print_header("SCRIPT MAESTRO - Metricas_Boti_Mensual")
-    
-    print("Este script ejecutará los siguientes módulos:")
+
+    print("★" * 70)
+    print("  PASO PREVIO OBLIGATORIO - EJECUTAR MANUALMENTE ANTES DE ESTE SCRIPT:")
+    print("")
+    print("  1. Abrir una terminal y autenticarse con credenciales AWS:")
+    print("       aws-azure-login --profile default --mode=gui")
+    print("")
+    print("  2. Ejecutar el módulo No_Entendidos:")
+    print("       cd No_Entendidos")
+    print("       python athena_connector.py")
+    print("       python No_Entendidos.py")
+    print("       cd ..")
+    print("")
+    print("  Si ya lo hiciste, podés ignorar este mensaje.")
+    print("★" * 70)
+
+    print("\nEste script ejecutará los siguientes módulos:")
     for i, modulo in enumerate(MODULOS, 1):
         print(f"  {i}. {modulo['nombre']} ({modulo['celdas']})")
-    
+
     print("\n⚠️  IMPORTANTE: Este proceso puede tardar varios minutos")
     
     # Verificaciones previas
@@ -351,23 +414,36 @@ def main():
         print("\n❌ No se pudo leer el período. Abortando.")
         sys.exit(1)
 
-    # Verificar si No_Entendidos ya fue ejecutado manualmente
-    if not verificar_no_entendidos_ejecutado(mes_nombre, anio):
-        print("\n" + "=" * 70)
-        print("⚠️  ACCIÓN REQUERIDA: Ejecutar No_Entendidos manualmente")
-        print("=" * 70)
-        print("\nNo_Entendidos requiere interacción manual (revalidar credenciales AWS).")
-        print("Debe ejecutarse ANTES de run_all.py.\n")
-        print("Pasos:")
-        print("  1. cd No_Entendidos")
-        print("  2. python athena_connector.py")
-        print("  3. python No_Entendidos.py")
-        print("  4. cd ..")
-        print("  5. python run_all.py  (volver a ejecutar este script)\n")
-        sys.exit(1)
+    # ── PRE-REQUISITOS MANUALES ──────────────────────────────────────────
+    print_section("PRE-REQUISITOS MANUALES")
+
+    # 1. TSV para Contenidos_Bot
+    print("📋 [1/2] Contenidos del Bot (D7, D8)")
+    tsv_ok = verificar_tsv_contenidos_bot(mes_nombre, anio)
+
+    # 2. No_Entendidos
+    print(f"\n📋 [2/2] No Entendimiento (D13)")
+    no_entendidos_ok = verificar_no_entendidos_ejecutado(mes_nombre, anio)
+    if not no_entendidos_ok:
+        print(f"\n   ⚠️  Requiere interacción manual (revalidar credenciales AWS).")
+        print(f"   → Ejecutar antes de correr este script:")
+        print(f"       1. cd No_Entendidos")
+        print(f"       2. python athena_connector.py")
+        print(f"       3. python No_Entendidos.py")
+        print(f"       4. cd ..")
+
+    # Resumen de pre-requisitos
+    print(f"\n{'─' * 70}")
+    print(f"  Resumen pre-requisitos:")
+    print(f"    {'✅' if tsv_ok          else '❌'} TSV Contenidos_Bot  (necesario para D7, D8)")
+    print(f"    {'✅' if no_entendidos_ok else '❌'} No_Entendidos       (necesario para D13)")
+    if not tsv_ok:
+        print(f"\n  ⚠️  Contenidos_Bot va a FALLAR porque le falta el TSV.")
+        print(f"      Podés continuar de todas formas o cancelar (Ctrl+C).")
+    print(f"{'─' * 70}\n")
 
     # Verificar AWS solo si hay módulos que lo requieren
-    # Excluir No_Entendidos de los módulos a ejecutar (ya fue ejecutado)
+    # Excluir No_Entendidos de los módulos a ejecutar (se maneja manualmente)
     modulos_a_ejecutar = [m for m in MODULOS if m['carpeta'] != 'No_Entendidos']
 
     requiere_aws = any(m['requiere_aws'] for m in modulos_a_ejecutar)
@@ -381,21 +457,24 @@ def main():
     # Iniciar ejecución automáticamente
     print("\n" + "=" * 70)
     print("🚀 Iniciando ejecución automática...")
-    print(f"   (No_Entendidos ya ejecutado - se omitirá)")
+    if no_entendidos_ok:
+        print(f"   (No_Entendidos ya ejecutado - se omitirá)")
+    else:
+        print(f"   (No_Entendidos pendiente - se omitirá)")
     print("=" * 70)
 
     # Ejecutar módulos (sin No_Entendidos)
     print_header("EJECUTANDO MÓDULOS")
-    
+
     inicio_total = time.time()
     resultados = []
 
-    # Agregar No_Entendidos como ya ejecutado al resumen
+    # Agregar No_Entendidos al resumen según si fue ejecutado o no
     resultados.append({
         'nombre': 'No Entendimiento',
-        'exitoso': True,
+        'exitoso': no_entendidos_ok,
         'duracion': 0,
-        'mensaje': 'Ya ejecutado manualmente'
+        'mensaje': 'Ya ejecutado manualmente' if no_entendidos_ok else '⚠️  Pendiente - no ejecutado'
     })
 
     for i, modulo in enumerate(modulos_a_ejecutar, 1):

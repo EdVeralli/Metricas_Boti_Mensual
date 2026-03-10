@@ -3,7 +3,7 @@
 # ========================================
 
 # MODO 1: Mes completo (comportamiento original)
-MES=01
+MES=02
 AÑO=2026
 
 # MODO 2: Rango de fechas personalizado (NUEVO)

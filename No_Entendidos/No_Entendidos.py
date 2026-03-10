@@ -572,16 +572,20 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         # PASO 10: CALCULAR PORCENTAJES
         # =================================================================
         imprimir_seccion("PASO 10: PORCENTAJES")
-        
+
         categorias = ['one', 'click', 'texto', 'abandono', 'nada', 'ne', 'letra']
-        
-        for categoria in categorias:
+
+        n_usuarios = len(respuestas_por_usuario)
+        imprimir_progreso(f"Calculando porcentajes para {n_usuarios:,} usuarios...")
+
+        for idx, categoria in enumerate(categorias, 1):
+            imprimir_progreso(f"  [{idx}/{len(categorias)}] Calculando porcentaje_{categoria}...")
             respuestas_por_usuario[f'porcentaje_{categoria}'] = [
                 respuestas_por_usuario.loc[i][categoria] /
                 respuestas_por_usuario.loc[i][categorias].sum()
                 for i in respuestas_por_usuario.index
             ]
-        
+
         imprimir_progreso("✓ Porcentajes calculados")
         
         # =================================================================
