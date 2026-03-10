@@ -128,13 +128,13 @@ aws-azure-login
 ### Librerías Python
 
 ```bash
-pip install boto3 awswrangler pandas numpy openpyxl selenium
+pip install boto3 awswrangler pandas numpy openpyxl selenium requests pytz
 ```
 
-O con archivo `requirements.txt`:
+Instalación de una sola vez (recomendado):
 
 ```bash
-pip install -r requirements.txt
+pip install --upgrade boto3 awswrangler pandas numpy openpyxl selenium requests pytz
 ```
 
 ### Accesos AWS
