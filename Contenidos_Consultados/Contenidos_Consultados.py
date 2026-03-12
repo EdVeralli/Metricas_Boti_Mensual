@@ -407,7 +407,17 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     else:
         print("    [INFO] Exclusiones DESACTIVADAS (APLICAR_EXCLUSIONES = False)")
 
-    # 3. Agrupar por rulename y sumar sesiones
+    # 3. Agrupar por RulenameUnique (prefijo antes del primer espacio) replicando lógica Power BI:
+    #    Para cada (RulenameUnique, Fecha) se conserva solo el rulename con más sesiones ese día.
+    #    Luego se suman esas sesiones por rulename dominante a lo largo del período.
+    df_filtrado['_RulenameUnique'] = df_filtrado[rulename_col].apply(
+        lambda x: str(x).split(' ')[0] if ' ' in str(x) else str(x)
+    )
+    if fecha_col:
+        idx_max = df_filtrado.groupby(['_RulenameUnique', fecha_col])[sesiones_col].idxmax()
+        df_filtrado = df_filtrado.loc[idx_max].copy()
+        print("    [INFO] Registros tras agrupación por prefijo (max por día): {:,}".format(len(df_filtrado)))
+
     df_agrupado = df_filtrado.groupby(rulename_col)[sesiones_col].sum().reset_index()
     df_agrupado.columns = ['Rulename', 'Suma de Sesiones']
 
