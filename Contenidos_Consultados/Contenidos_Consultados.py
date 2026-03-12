@@ -102,7 +102,6 @@ CONTENIDOS_EXCLUIR = [
     'USIG - Preguntar calle y dirección (sin send location)',
     'Invocar servicio de infracciones',
     'Puede estacionar CTA',
-    'Licencia prorroga  > Consultar',
 
     # Pushes de Salud
     'button_PushSalud_Confirmacion',
