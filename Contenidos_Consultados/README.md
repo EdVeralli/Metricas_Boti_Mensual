@@ -2,6 +2,15 @@
 
 Script automatizado para generar el reporte de contenidos mas consultados del chatbot Boti del Gobierno de la Ciudad de Buenos Aires (GCBA). Descarga datos de AWS Athena, calcula el ranking completo de contenidos con porcentaje del total, y genera una serie temporal diaria.
 
+## Versiones
+
+| Script | Descripcion |
+|--------|-------------|
+| `Contenidos_Consultados.py` | **v1** - Lista estatica de 117 exclusiones (version original) |
+| `Contenidos_Consultados_v2.py` | **v2** - Filtrado en 2 capas + nombres amigables + agrupacion TUR00CUX02 (version actual) |
+
+**Se recomienda usar la v2**, que replica mas fielmente la logica del Power BI "Consultas por dia 1.pbix".
+
 ## Descripcion
 
 Este modulo consulta la vista `boti_vw_buscador_rulename` en AWS Athena, que contiene las sesiones diarias por contenido (rulename). Procesa los datos para generar:
@@ -10,11 +19,16 @@ Este modulo consulta la vista `boti_vw_buscador_rulename` en AWS Athena, que con
 2. **Serie temporal diaria** con sesiones por dia (replica la pagina "Historico" del Power BI)
 3. **Dashboard** con celda D11 conteniendo el Top 10 de contenidos formateado
 
-## Caracteristicas
+## Caracteristicas (v2)
 
 - Consulta automatica a AWS Athena (vista `boti_vw_buscador_rulename`)
 - Dos modos de consulta: mes completo o rango personalizado de fechas
-- Lista de 117 exclusiones configurable (onboardings, pushes, bifurcadores, etc.)
+- **Filtrado en 2 capas** como el Power BI original:
+  - Capa 1: 35+ patrones dinamicos (CONTAINS, case-insensitive)
+  - Capa 2: 13 exclusiones manuales para casos puntuales
+- **Agrupacion por prefijo** (RulenameUnique): mantiene solo el rulename con mas sesiones por grupo/dia
+- **Agrupacion especial TUR00CUX02**: solo la rulename ganadora sobrevive (ver seccion dedicada)
+- **Nombres amigables**: mapeo de rulenames tecnicos a nombres legibles en el Excel y Dashboard
 - Flag `APLICAR_EXCLUSIONES` para activar/desactivar exclusiones facilmente
 - Generacion de CSV con datos crudos para control
 - Excel detallado con 2 hojas: "Buscador de contenidos" + "Historico"
@@ -61,12 +75,35 @@ Consulta del 1 al 15 de enero 2026.
 
 **Nota:** Si ambos modos estan configurados, el rango personalizado tiene prioridad.
 
-### Exclusiones
+### Exclusiones (v1)
 
-La lista de contenidos a excluir esta en la constante `CONTENIDOS_EXCLUIR` dentro del script. Para desactivar las exclusiones:
+En `Contenidos_Consultados.py`, la lista de 117 exclusiones esta en la constante `CONTENIDOS_EXCLUIR`.
 
+### Exclusiones (v2) - Filtrado en 2 Capas
+
+En `Contenidos_Consultados_v2.py`, el filtrado replica la logica del Power BI con 2 capas:
+
+**Capa 1 - Patrones dinamicos (`PATRONES_EXCLUIR`):**
+Se excluye toda rulename que CONTENGA alguno de estos textos (case-insensitive). Ejemplos:
+```
+push, recordatorio, confirmacion, cancelacion, CXF, CAT, api, onboarding,
+menu, Invocar, Bifurcador, No entend, Orquestador, CTA, Agente, V2, SIGECI,
+USIG, Botonera, _, Solicitud, Cierre, Chau, miBA, ...
+```
+Actualmente son ~35 patrones. La lista completa esta en la constante `PATRONES_EXCLUIR` del script.
+
+**Capa 2 - Lista manual (`CONTENIDOS_EXCLUIR_MANUAL`):**
+Para rulenames puntuales que no caen en ningun patron de la Capa 1:
+```
+Coyuntura (cierre de estacion Carlos Gardel linea B)
+3. Login miBA, 3.1 Login miBA, miBA - Login exitoso
+147 - ¿Te puedo ayudar en algo mas?, Cancelar, X. Buscaba otra cosa
+TUR01CUX13 Preguntar genero, MO05CUX01 - Sexo
+```
+
+Para desactivar las exclusiones:
 ```python
-APLICAR_EXCLUSIONES = False  # Linea 40
+APLICAR_EXCLUSIONES = False  # Linea 47
 ```
 
 ## Uso
@@ -85,8 +122,53 @@ Editar `config_fechas.txt` en la raiz del proyecto.
 
 ```bash
 cd Contenidos_Consultados
-python Contenidos_Consultados.py
+python Contenidos_Consultados.py      # v1
+python Contenidos_Consultados_v2.py   # v2 (recomendado)
 ```
+
+## Agrupacion Especial TUR00CUX02 (v2)
+
+Las rulenames que comienzan con `TUR00CUX02` representan dos contenidos de Turnos:
+
+| Rulename tecnico | Nombre amigable |
+|-----------------|-----------------|
+| TUR00CUX02 Turnos para salud | **Turnos Salud** |
+| TUR00CUX02 Mensaje inicial - Turnos | **Turnos SAP** |
+
+**Politica (implementada desde marzo 2026):** Solo UNA de las dos puede aparecer en el ranking final. El script:
+
+1. Despues de la agrupacion por prefijo, suma las sesiones totales de cada una
+2. Se queda UNICAMENTE con la de mayor valor
+3. La perdedora se elimina del ranking
+
+**Ejemplo:**
+- TUR00CUX02 Turnos para salud: 120,000 sesiones → **GANA** → aparece como "Turnos Salud"
+- TUR00CUX02 Mensaje inicial - Turnos: 95,000 sesiones → **ELIMINADA**
+
+Si en el futuro la de "Mensaje inicial - Turnos" superara a "Turnos para salud", el ranking mostraria "Turnos SAP" en su lugar.
+
+**Nota:** En reportes anteriores a marzo 2026 (enero, febrero), ambas aparecian en el ranking. Esta nueva politica se aplica de ahora en adelante.
+
+La lista de prefijos con esta logica esta en `PREFIJOS_AGRUPAR` del script v2.
+
+## Nombres Amigables (v2)
+
+El script v2 usa un mapeo (`NOMBRES_AMIGABLES`) para mostrar nombres legibles en el Excel y Dashboard:
+
+| Rulename tecnico | Nombre amigable |
+|-----------------|-----------------|
+| SA06CUX03 Confirmar turno Si, dale | Confirmacion Turnos Salud |
+| TUR00CUX02 Turnos para salud | Turnos Salud |
+| Infracciones * Apertura | Infracciones |
+| TUR00CUX02 Mensaje inicial - Turnos | Turnos SAP |
+| SA06CUX02 Apertura | Mis profesionales |
+| MO00CUX01 Auto o moto | Tramites Vehiculos SAP |
+| SA10CUX01 Hospitales | Hospitales |
+| MO05CUX02 Apertura | Licencias |
+| TR00CUX01 Apertura | Tramites SAP |
+| Busca donde esta permitido estacionar | Buscar donde esta permitido estacionar |
+
+Las rulenames que no tengan mapeo conservan su nombre tecnico original.
 
 ## Salida
 
@@ -142,14 +224,29 @@ La vista retorna filas con columnas: `Fecha`, `Rulename`, `Sesiones_diarias` (un
 
 ## Logica de Procesamiento
 
-Extraida del Power BI "Consultas por dia 1.pbix":
+### v1 (Contenidos_Consultados.py)
+
+1. Filtrar por fecha
+2. Excluir contenidos no relevantes (117 nombres exactos)
+3. Agrupar por Rulename: SUM(Sesiones_diarias)
+4. Ordenar descendente
+5. Calcular %GT
+6. Serie temporal diaria
+
+### v2 (Contenidos_Consultados_v2.py)
+
+Extraida del Power BI "Consultas por dia 1.pbix" + PDF de logica:
 
 1. **Filtrar por fecha:** Solo registros dentro del periodo configurado
-2. **Excluir contenidos no relevantes:** 117 reglas (onboardings, pushes, bifurcadores, feedback, login, menus internos)
-3. **Agrupar por Rulename:** `SUM(Sesiones_diarias)` por cada contenido
-4. **Ordenar descendente:** Por suma de sesiones
-5. **Calcular %GT:** `SUM(Sesiones) / ScopedEval(SUM(Sesiones), [])` (porcentaje del gran total)
-6. **Serie temporal:** Agrupar por fecha para obtener sesiones diarias totales
+2. **CAPA 1 - Patrones dinamicos:** Excluir rulenames que contengan alguno de los 35+ patrones (CONTAINS, case-insensitive)
+3. **CAPA 2 - Lista manual:** Excluir 13 nombres exactos no cubiertos por Capa 1
+4. **Extraer prefijo (RulenameUnique):** Primera palabra antes del espacio
+5. **Agrupar por (prefijo, fecha):** Quedarse con el rulename de mas sesiones por dia dentro de cada grupo
+6. **Sumar sesiones por rulename:** Agregar las sesiones diarias de cada rulename sobreviviente
+7. **Agrupacion TUR00CUX02:** De las que sobreviven, quedarse SOLO con la de mayor valor total (ver seccion dedicada)
+8. **Aplicar nombres amigables:** Mapear rulenames tecnicos a nombres legibles
+9. **Calcular %GT:** `SUM(Sesiones) / ScopedEval(SUM(Sesiones), [])` (porcentaje del gran total)
+10. **Serie temporal:** Agrupar por fecha para obtener sesiones diarias totales
 
 ### Origen del %GT
 
@@ -170,10 +267,12 @@ df['% del Total'] = df['Suma de Sesiones'] / df['Suma de Sesiones'].sum()
 ```
 Contenidos_Consultados/
 |
-├── Contenidos_Consultados.py              # Script principal
+├── Contenidos_Consultados.py              # Script v1 (lista estatica de 117 exclusiones)
+├── Contenidos_Consultados_v2.py           # Script v2 (2 capas + nombres amigables + TUR00CUX02)
 ├── README.md                              # Esta documentacion
 ├── Consultas por dia 1.pbix               # Power BI nuevo (referencia)
 ├── Buscador de Contenidos mas Consultados.pbix  # Power BI viejo (referencia)
+├── Metricas Canales Digitales.xlsx        # Excel testigo para validacion
 |
 └── output/                                # Carpeta de salida
     ├── contenidos_consultados_enero_2026.csv
