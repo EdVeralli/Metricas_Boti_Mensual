@@ -118,13 +118,14 @@ Actualmente `Licencias` (MO05CUX02 Apertura) es siempre el de mayor score, por l
 > Si en algún mes uno de los subcontenidos supera a `MO05CUX02 Apertura`, hay que revisar
 > si conviene mostrar ese en lugar del principal, o sumar sesiones del grupo (como hace TUR00CUX02).
 
-### Subcontenidos de Trámites Vehículos SAP
+### Subcontenidos de TelePASE (AUSA)
 
-El contenido principal es `Trámites Vehículos SAP` → rulename `MO00CUX01 Auto o moto`.
+El contenido principal de TelePASE corresponde al prefijo `MO08CUX03`.
+Se excluyen sus subcontenidos para evitar que aparezcan en el ranking.
 
 | Rulename | Detalle | Detectado en |
 |----------|---------|--------------|
-| `MO08CUX03 Apertura` | Subcontenido del flujo de vehículos | ene-2026 puesto 10 (28.077 ses.) |
+| `MO08CUX03 Apertura` | Subcontenido del flujo de TelePASE (AUSA) | ene-2026 puesto 10 (28.077 ses.) |
 
 ---
 
