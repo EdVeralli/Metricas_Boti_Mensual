@@ -85,6 +85,7 @@ PATRONES_EXCLUIR = [
     'Cierre',
     'Chau',
     'miBA',
+    'BOT0',
 ]
 
 # Compilar regex una sola vez para mejor rendimiento
@@ -125,6 +126,18 @@ CONTENIDOS_EXCLUIR_MANUAL = [
     'TUR01CUX13 Preguntar género',
     'MO05CUX01 - Sexo',
     'Puede estacionar CTA',  # ya cae por 'CTA' pero se deja por seguridad
+
+    # Subcontenidos de Licencias (no deben aparecer en el ranking)
+    # "Licencias" (MO05CUX02 Apertura) es la entrada principal que agrupa el trámite.
+    # Los subcontenidos de ese flujo se excluyen para evitar duplicación en el top 10:
+    'Licencia prorroga  > Consultar',  # subcontenido de Licencias - fue feb-2026 puesto 9 (62.240) - DOBLE ESPACIO es como viene en los datos
+    'MO05CUX01 > Tiene que renovar',   # subcontenido de Licencias - fue feb-2026 puesto 10 (47.990)
+    'LIC00CUX00 Validaciones',         # subcontenido de Licencias
+
+    # Subcontenidos de Motovehiculos (no deben aparecer en el ranking)
+    # "Trámites Vehículos SAP" (MO00CUX01 Auto o moto) es la entrada principal.
+    'MO08CUX03 Apertura',              # subcontenido de Trámites Vehículos SAP - fue ene-2026 puesto 10 (28.077)
+
 ]
 
 # ==================== NOMBRES AMIGABLES ====================
