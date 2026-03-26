@@ -4,7 +4,7 @@ Registro completo de todo lo que se excluye del ranking de Contenidos Más Consu
 ya sea por patrón dinámico (Capa 1) o por exclusión manual puntual (Capa 2).
 
 Fuente: `Contenidos_Consultados_v2.py`
-Última actualización: 2026-03-25
+Última actualización: 2026-03-26
 
 ---
 
@@ -102,16 +102,21 @@ pero igualmente deben excluirse del ranking.
 | `MO05CUX01 - Sexo` | Paso interno del flujo de Licencias |
 | `Puede estacionar CTA` | Mensaje de respuesta *(también cae por patrón `CTA`)* |
 
-### Subcontenidos de Licencias
+### Grupo Licencias
 
-El contenido principal es `Licencias` → rulename `MO05CUX02 Apertura`.
-Los siguientes son pasos internos del mismo flujo y se excluyen para evitar que un mismo trámite ocupe varios puestos en el top 10:
+Todos los rulenames de este grupo representan el mismo trámite de Licencias.
+**Solo debe aparecer en el ranking el que tenga más sesiones en el mes.**
+Actualmente `Licencias` (MO05CUX02 Apertura) es siempre el de mayor score, por lo que los demás se excluyen.
 
-| Rulename | Detalle | Detectado en |
-|----------|---------|--------------|
-| `Licencia prorroga  > Consultar` | Subcontenido del flujo. **Tiene doble espacio antes de `>`**, así es como viene en los datos. | feb-2026 puesto 9 (62.240 ses.) |
-| `MO05CUX01 > Tiene que renovar` | Subcontenido del flujo | feb-2026 puesto 10 (47.990 ses.) |
-| `LIC00CUX00 Validaciones` | Subcontenido del flujo | feb-2026 |
+| Rulename | Nombre amigable | Rol en el grupo |
+|----------|-----------------|-----------------|
+| `MO05CUX02 Apertura` | **Licencias** ← aparece en el ranking | Entrada principal del flujo |
+| `Licencia prorroga  > Consultar` | — | Subcontenido. **Doble espacio antes de `>`** (así viene en los datos). Detectado feb-2026 puesto 9 (62.240 ses.) |
+| `MO05CUX01 > Tiene que renovar` | — | Subcontenido. Detectado feb-2026 puesto 10 (47.990 ses.) |
+| `LIC00CUX00 Validaciones` | — | Subcontenido. Detectado feb-2026 |
+
+> Si en algún mes uno de los subcontenidos supera a `MO05CUX02 Apertura`, hay que revisar
+> si conviene mostrar ese en lugar del principal, o sumar sesiones del grupo (como hace TUR00CUX02).
 
 ### Subcontenidos de Trámites Vehículos SAP
 
