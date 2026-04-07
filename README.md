@@ -452,7 +452,17 @@ efectividad_web_boti/efectividad_web_boti_{mes}_{año}.xlsx
 - `contenidos_bot_{mes}_{año}.xlsx` - Dashboard con métricas D7, D8
 - `contenidos_bot_detalle_{mes}_{año}.xlsx` - Detalle completo de contenidos
 
-**Nota:** Requiere 2 archivos TSV de Botmaker en la carpeta `Contenidos_Bot/` (mes actual y mes anterior). Se auto-detectan los 2 más recientes.
+> ⚠️ **REQUISITO OBLIGATORIO: 2 archivos TSV en la carpeta `Contenidos_Bot/`**
+>
+> Antes de ejecutar, copiá en `Contenidos_Bot/` los dos TSV exportados desde Botmaker:
+>
+> | Archivo | Descripción | Ejemplo |
+> |---|---|---|
+> | TSV mes actual | Exportación del mes que se está reportando | `rules-2026.03.30-14.12.tsv` |
+> | TSV mes anterior | Exportación del mes previo (para comparar) | `rules-2026.02.28-10.00.tsv` |
+>
+> Ambos deben tener el formato estándar de Botmaker: `rules-YYYY.MM.DD-HH.MM.tsv`
+> El script toma automáticamente los 2 más recientes. Si falta alguno, avisa qué mes exportar.
 
 #### 6. No Entendimiento (Módulo Complejo)
 **Scripts:**
