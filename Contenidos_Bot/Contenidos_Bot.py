@@ -124,22 +124,62 @@ def buscar_tsv_mas_recientes():
     Retorna: (path_current, path_previous) o (None, None) si no hay suficientes.
     """
     archivos_tsv = glob.glob('rules-*.tsv')
-
-    if len(archivos_tsv) < 2:
-        print("[ERROR] Se necesitan al menos 2 archivos TSV (mes actual y mes anterior)")
-        print("    Archivos encontrados: {}".format(len(archivos_tsv)))
-        if archivos_tsv:
-            for f in archivos_tsv:
-                print("      - {}".format(f))
-        return None, None
-
-    # Ordenar por nombre (que contiene la fecha YYYY.MM.DD-HH.MM)
     archivos_tsv.sort()
 
+    print("    Archivos TSV encontrados en la carpeta: {}".format(len(archivos_tsv)))
+    for f in archivos_tsv:
+        print("      - {}".format(f))
+
+    if len(archivos_tsv) == 0:
+        print("")
+        print("  [!] No hay ningún archivo TSV en esta carpeta.")
+        print("      Exportá las reglas desde Botmaker y copiá los 2 archivos aquí.")
+        print("      Formato esperado: rules-YYYY.MM.DD-HH.MM.tsv")
+        print("      Ejemplo mes actual:   rules-2026.03.30-14.12.tsv")
+        print("      Ejemplo mes anterior: rules-2026.02.28-10.00.tsv")
+        return None, None
+
+    if len(archivos_tsv) == 1:
+        archivo_existente = archivos_tsv[0]
+        # Intentar detectar qué mes es el archivo existente
+        match = re.search(r'rules-(\d{4})\.(\d{2})\.(\d{2})', archivo_existente)
+        if match:
+            anio_f = int(match.group(1))
+            mes_f = int(match.group(2))
+            # Calcular el mes faltante (el anterior)
+            if mes_f == 1:
+                mes_faltante = 12
+                anio_faltante = anio_f - 1
+            else:
+                mes_faltante = mes_f - 1
+                anio_faltante = anio_f
+            meses_nombres = {
+                1:'enero',2:'febrero',3:'marzo',4:'abril',5:'mayo',6:'junio',
+                7:'julio',8:'agosto',9:'septiembre',10:'octubre',11:'noviembre',12:'diciembre'
+            }
+            mes_act_nombre = meses_nombres.get(mes_f, str(mes_f))
+            mes_ant_nombre = meses_nombres.get(mes_faltante, str(mes_faltante))
+            print("")
+            print("  [!] Solo se encontró 1 archivo TSV.")
+            print("      Archivo detectado (mes actual): {} [{}  {}]".format(
+                archivo_existente, mes_act_nombre, anio_f))
+            print("      Falta el TSV del mes anterior: {} {}".format(
+                mes_ant_nombre, anio_faltante))
+            print("      Exportalo desde Botmaker y copialo aquí con el formato:")
+            print("      rules-{}.{:02d}.DD-HH.MM.tsv".format(anio_faltante, mes_faltante))
+        else:
+            print("")
+            print("  [!] Solo se encontró 1 archivo TSV. Se necesitan 2 para comparar.")
+            print("      Exportá el TSV del mes anterior desde Botmaker y copialo aquí.")
+            print("      Formato esperado: rules-YYYY.MM.DD-HH.MM.tsv")
+        return None, None
+
+    # Hay 2 o más archivos — tomar los 2 más recientes
     path_previous = archivos_tsv[-2]
     path_current = archivos_tsv[-1]
 
-    print("[OK] Archivos TSV encontrados:")
+    print("")
+    print("  [OK] Usando los 2 TSV más recientes:")
     print("    Mes anterior: {}".format(path_previous))
     print("    Mes actual:   {}".format(path_current))
 
@@ -607,7 +647,7 @@ def imprimir_resultados(metricas):
 
 # ==================== EJECUCION PRINCIPAL ====================
 
-if __name__ == "__main__":
+def main():
     print("")
     print("=" * 60)
     print("SCRIPT: CONTENIDOS DEL BOT")
@@ -622,7 +662,8 @@ if __name__ == "__main__":
 
     if modo is None:
         print("[ERROR] No se pudo obtener la configuracion. Abortando.")
-        exit(1)
+        print("=" * 60)
+        return
 
     print("[OK] Período: {}".format(descripcion))
 
@@ -632,8 +673,10 @@ if __name__ == "__main__":
     path_current, path_previous = buscar_tsv_mas_recientes()
 
     if path_current is None:
-        print("[ERROR] No se encontraron archivos TSV suficientes. Abortando.")
-        exit(1)
+        print("")
+        print("[!] Agregá el archivo TSV faltante y volvé a ejecutar.")
+        print("=" * 60)
+        return
 
     # Cargar datos
     print("")
@@ -683,3 +726,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("PROCESO COMPLETADO EXITOSAMENTE")
     print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
