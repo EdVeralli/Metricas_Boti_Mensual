@@ -4,10 +4,23 @@ Script para contar y comparar contenidos del Bot entre dos períodos
 Lee archivos TSV exportados de Botmaker (rules-YYYY.MM.DD-HH.MM.tsv)
 Genera un Excel con métricas de contenidos, intenciones y cambios
 
+╔══════════════════════════════════════════════════════════════╗
+║  REQUISITO OBLIGATORIO ANTES DE EJECUTAR:                    ║
+║                                                              ║
+║  Deben estar presentes en esta carpeta EXACTAMENTE 2         ║
+║  archivos TSV exportados desde Botmaker:                     ║
+║                                                              ║
+║    • TSV del MES ACTUAL   → ej: rules-2026.03.30-14.12.tsv  ║
+║    • TSV del MES ANTERIOR → ej: rules-2026.02.28-10.00.tsv  ║
+║                                                              ║
+║  Ambos deben tener el formato: rules-YYYY.MM.DD-HH.MM.tsv   ║
+║  El script toma automáticamente los 2 más recientes.         ║
+╚══════════════════════════════════════════════════════════════╝
+
 Uso:
-    1. Colocar los 2 archivos TSV en esta carpeta (mes actual y mes anterior)
+    1. Exportar ambos TSV desde Botmaker y copiarlos en esta carpeta
     2. Ejecutar: python Contenidos_Bot.py
-    3. El script toma automáticamente los 2 TSV más recientes
+    3. Los resultados se guardan en la carpeta output/
 
 Lee configuracion de fechas desde config_fechas.txt (para nombrar el output)
 """
@@ -654,6 +667,15 @@ def main():
     print("=" * 60)
     print("Compara contenidos entre dos exportaciones TSV de Botmaker")
     print("Genera: Excel con métricas + Dashboard Master (D7, D8)")
+    print("")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!  ATENCIÓN: SE NECESITAN 2 ARCHIVOS TSV EN ESTA CARPETA  !")
+    print("!                                                          !")
+    print("!   TSV MES ACTUAL   →  rules-YYYY.MM.DD-HH.MM.tsv        !")
+    print("!   TSV MES ANTERIOR →  rules-YYYY.MM.DD-HH.MM.tsv        !")
+    print("!                                                          !")
+    print("!   Exportalos desde Botmaker antes de ejecutar.           !")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     print("")
 
     # Leer configuración de fechas
