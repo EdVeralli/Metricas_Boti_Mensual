@@ -2,15 +2,6 @@
 
 Script automatizado para generar el reporte de contenidos mas consultados del chatbot Boti del Gobierno de la Ciudad de Buenos Aires (GCBA). Descarga datos de AWS Athena, calcula el ranking completo de contenidos con porcentaje del total, y genera una serie temporal diaria.
 
-## Versiones
-
-| Script | Descripcion |
-|--------|-------------|
-| `Contenidos_Consultados.py` | **v1** - Lista estatica de 117 exclusiones (version original) |
-| `Contenidos_Consultados_v2.py` | **v2** - Filtrado en 2 capas + nombres amigables + agrupacion TUR00CUX02 (version actual) |
-
-**Se recomienda usar la v2**, que replica mas fielmente la logica del Power BI "Consultas por dia 1.pbix".
-
 ## Descripcion
 
 Este modulo consulta la vista `boti_vw_buscador_rulename` en AWS Athena, que contiene las sesiones diarias por contenido (rulename). Procesa los datos para generar:
@@ -19,7 +10,7 @@ Este modulo consulta la vista `boti_vw_buscador_rulename` en AWS Athena, que con
 2. **Serie temporal diaria** con sesiones por dia (replica la pagina "Historico" del Power BI)
 3. **Dashboard** con celda D11 conteniendo el Top 10 de contenidos formateado
 
-## Caracteristicas (v2)
+## Caracteristicas
 
 - Consulta automatica a AWS Athena (vista `boti_vw_buscador_rulename`)
 - Dos modos de consulta: mes completo o rango personalizado de fechas
@@ -75,13 +66,9 @@ Consulta del 1 al 15 de enero 2026.
 
 **Nota:** Si ambos modos estan configurados, el rango personalizado tiene prioridad.
 
-### Exclusiones (v1)
+### Exclusiones - Filtrado en 2 Capas
 
-En `Contenidos_Consultados.py`, la lista de 117 exclusiones esta en la constante `CONTENIDOS_EXCLUIR`.
-
-### Exclusiones (v2) - Filtrado en 2 Capas
-
-En `Contenidos_Consultados_v2.py`, el filtrado replica la logica del Power BI con 2 capas:
+En `Contenidos_Consultados.py`, el filtrado replica la logica del Power BI con 2 capas:
 
 **Capa 1 - Patrones dinamicos (`PATRONES_EXCLUIR`):**
 Se excluye toda rulename que CONTENGA alguno de estos textos (case-insensitive). Ejemplos:
@@ -122,11 +109,10 @@ Editar `config_fechas.txt` en la raiz del proyecto.
 
 ```bash
 cd Contenidos_Consultados
-python Contenidos_Consultados.py      # v1
-python Contenidos_Consultados_v2.py   # v2 (recomendado)
+python Contenidos_Consultados.py
 ```
 
-## Agrupacion Especial TUR00CUX02 (v2)
+## Agrupacion Especial TUR00CUX02
 
 Las rulenames que comienzan con `TUR00CUX02` representan dos contenidos de Turnos:
 
@@ -135,11 +121,13 @@ Las rulenames que comienzan con `TUR00CUX02` representan dos contenidos de Turno
 | TUR00CUX02 Turnos para salud | **Turnos Salud** |
 | TUR00CUX02 Mensaje inicial - Turnos | **Turnos SAP** |
 
-**Politica (implementada desde marzo 2026):** Solo UNA de las dos puede aparecer en el ranking final. El script:
+**Politica (aplica desde mayo 2026):** Solo UNA de las dos puede aparecer en el ranking final. El script:
 
 1. Despues de la agrupacion por prefijo, suma las sesiones totales de cada una
 2. Se queda UNICAMENTE con la de mayor valor
 3. La perdedora se elimina del ranking
+
+La fecha de entrada en vigencia esta en la constante `PREFIJOS_AGRUPAR_DESDE = '2026-05-01'`. Para periodos anteriores (enero, febrero, marzo, abril 2026), los prefijos agrupados aparecen **separados** en el ranking (como lo muestra el Power BI historico).
 
 **Ejemplo:**
 - TUR00CUX02 Turnos para salud: 120,000 sesiones → **GANA** → aparece como "Turnos Salud"
@@ -147,13 +135,13 @@ Las rulenames que comienzan con `TUR00CUX02` representan dos contenidos de Turno
 
 Si en el futuro la de "Mensaje inicial - Turnos" superara a "Turnos para salud", el ranking mostraria "Turnos SAP" en su lugar.
 
-**Nota:** En reportes anteriores a marzo 2026 (enero, febrero), ambas aparecian en el ranking. Esta nueva politica se aplica de ahora en adelante.
+**Nota:** En reportes anteriores a mayo 2026 (enero, febrero, marzo, abril), ambas aparecian en el ranking. Esta nueva politica se aplica de ahora en adelante.
 
-La lista de prefijos con esta logica esta en `PREFIJOS_AGRUPAR` del script v2.
+La lista de prefijos con esta logica esta en `PREFIJOS_AGRUPAR` del script.
 
-## Nombres Amigables (v2)
+## Nombres Amigables
 
-El script v2 usa un mapeo (`NOMBRES_AMIGABLES`) para mostrar nombres legibles en el Excel y Dashboard:
+El script usa un mapeo (`NOMBRES_AMIGABLES`) para mostrar nombres legibles en el Excel y Dashboard:
 
 | Rulename tecnico | Nombre amigable |
 |-----------------|-----------------|
@@ -224,17 +212,6 @@ La vista retorna filas con columnas: `Fecha`, `Rulename`, `Sesiones_diarias` (un
 
 ## Logica de Procesamiento
 
-### v1 (Contenidos_Consultados.py)
-
-1. Filtrar por fecha
-2. Excluir contenidos no relevantes (117 nombres exactos)
-3. Agrupar por Rulename: SUM(Sesiones_diarias)
-4. Ordenar descendente
-5. Calcular %GT
-6. Serie temporal diaria
-
-### v2 (Contenidos_Consultados_v2.py)
-
 Extraida del Power BI "Consultas por dia 1.pbix" + PDF de logica:
 
 1. **Filtrar por fecha:** Solo registros dentro del periodo configurado
@@ -267,8 +244,7 @@ df['% del Total'] = df['Suma de Sesiones'] / df['Suma de Sesiones'].sum()
 ```
 Contenidos_Consultados/
 |
-├── Contenidos_Consultados.py              # Script v1 (lista estatica de 117 exclusiones)
-├── Contenidos_Consultados_v2.py           # Script v2 (2 capas + nombres amigables + TUR00CUX02)
+├── Contenidos_Consultados.py              # Script principal (2 capas + nombres amigables + TUR00CUX02)
 ├── README.md                              # Esta documentacion
 ├── Consultas por dia 1.pbix               # Power BI nuevo (referencia)
 ├── Buscador de Contenidos mas Consultados.pbix  # Power BI viejo (referencia)

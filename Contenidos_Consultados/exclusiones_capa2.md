@@ -3,7 +3,7 @@
 Registro completo de todo lo que se excluye del ranking de Contenidos Más Consultados,
 ya sea por patrón dinámico (Capa 1) o por exclusión manual puntual (Capa 2).
 
-Fuente: `Contenidos_Consultados_v2.py`
+Fuente: `Contenidos_Consultados.py`
 Última actualización: 2026-03-26
 
 ---

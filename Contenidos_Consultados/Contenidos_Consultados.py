@@ -3,12 +3,18 @@
 Script para descargar y procesar Contenidos Consultados desde Athena
 Descarga la vista boti_vw_buscador_rulename y genera tabla completa de contenidos.
 
+Implementa filtrado en 2 capas como el Power BI original:
+  - CAPA 1: Filtro dinámico por patrones (CONTAINS) - extraído del PDF de lógica
+  - CAPA 2: Lista fija de exclusiones manuales para casos puntuales
+
 Lógica extraída del Power BI "Consultas por dia 1.pbix":
 1. Filtrar por rango de fechas del período
-2. Excluir contenidos no relevantes (onboardings, pushes, bifurcadores, etc.)
-3. Agrupar por rulename y sumar sesiones
-4. Mostrar TODOS los contenidos con % del total
-5. Generar serie temporal diaria (Histórico)
+2. CAPA 1: Excluir por patrones dinámicos (CONTAINS)
+3. CAPA 2: Excluir por lista fija de nombres exactos
+4. Extraer prefijo (RulenameUnique) y agrupar por (prefijo, fecha)
+5. Quedarse con el rulename con más sesiones por (prefijo, fecha)
+6. Sumar sesiones por rulename y calcular %GT
+7. Generar serie temporal diaria (Histórico)
 
 MODOS SOPORTADOS:
 1. MES COMPLETO: Especificar MES y AÑO
@@ -23,6 +29,7 @@ import pandas as pd
 from datetime import datetime
 from calendar import monthrange
 import os
+import re
 import openpyxl
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
@@ -39,155 +46,126 @@ CONFIG = {
 # Poner en False para ver TODOS los contenidos sin filtrar.
 APLICAR_EXCLUSIONES = True
 
-# Lista de contenidos a EXCLUIR (extraída del Power BI)
-# Incluye: onboardings, pushes, bifurcadores, feedback, login, menús internos, etc.
-CONTENIDOS_EXCLUIR = [
-    # Onboardings
-    'Onboarding Principal',
-    'Onboarding Agendame soy Boti',
-    'Onboarding Temporal en BA - Alerta Amarilla',
-    'Onboarding Temporal en BA - Alerta Naranja',
-    'Onboarding Coyuntura (21 de agosto - extensión línea D)',
-    'Onboarding Coyuntura (5/8) - Semana Mundial de la Lactancia',
-    'Onboarding Coyuntura (subte – cierre Plaza Italia 11/8)',
-    'Onboarding Coyuntura Día de la Niñez - finde largo agosto',
-    'Onboarding Coyuntura línea D (cierre de estación Agüero + partido River)',
-    'Onboarding Coyuntura – Subte A, estación Loria (cierre 20/10)',
+# ==================== CAPA 1: PATRONES DINAMICOS ====================
+# Extraídos del PDF "Lógica de armado de contenidos más consultados"
+# Se excluye toda rule_name que CONTENGA alguno de estos textos (case-insensitive)
+PATRONES_EXCLUIR = [
+    'push',
+    'recordatorio',
+    'confirmación',
+    'confirmacion',
+    'cancelacion',
+    'cancelación',
+    'CXF',
+    'CAT',
+    'api',
+    'onboarding',
+    'menú',
+    'menu',
+    'Invocar',
+    'Bifurcador',
+    'No entendidos',
+    'No, nada de eso',
+    'No entend',
+    'Orquestador',
+    'CTA',
+    'Atiende',
+    'Agente',
+    'V2',
+    'v2',
+    'Instancia',
+    'SIGECI',
+    'USIG',
+    'Botonera',
+    '_autenticacion',
+    '_',        # NOTA: Excluye todo lo que contenga guión bajo (muy agresivo, viene del PDF)
+    'Solicitud',
+    'Reconocer',
+    'Terminar',
+    'Cierre',
+    'Chau',
+    'miBA',
+    'BOT0',
+]
+
+# Compilar regex una sola vez para mejor rendimiento
+# Se usa re.IGNORECASE para que coincida sin importar mayúsculas/minúsculas
+# Se escapan los patrones para evitar problemas con caracteres especiales
+_PATRON_REGEX = re.compile(
+    '|'.join(re.escape(p) for p in PATRONES_EXCLUIR),
+    re.IGNORECASE
+)
+
+# ==================== CAPA 2: EXCLUSIONES MANUALES ====================
+# Para contenidos puntuales que no caen en ningún patrón de la Capa 1
+# pero igual deben excluirse.
+# NOTA: Muchos de los items del script original ya caen por la Capa 1,
+# acá solo van los que NO serían atrapados por los patrones.
+CONTENIDOS_EXCLUIR_MANUAL = [
+    # Coyunturas (no caen en patrones)
     'Coyuntura (cierre de estación Carlos Gardel línea B)',
 
-    # Bifurcadores
-    'Bifurcador OB trámites y turnos',
-    'BOT02CUX03 Bifurcador',
-    'DDHH03CUX01 Bifurcador corto derechos',
-    'DDHH03CUX01 Bifurcador derechos',
-    'DH11CUX01 Bifurcador',
-    'SUA01CUX17 Bifurcador pintura o hidrolavado',
-    'TU01CUX03 Bifurcador Colas Atención - Paso 2 Español',
-
-    # Login y miBA
+    # Login y miBA (no contienen ningún patrón de Capa 1)
     '3. Login miBA',
     '3.1 Login miBA',
     'miBA - Login exitoso',
-    'IN01CAT01 miBA Login para Infracciones',
 
-    # Menús y navegación
-    'MENU PRINCIPAL 2.0',
-    'Menú show buttons',
-    'Más temas post Menú 2.0',
+    # Navegación
+    'Más temas post Menú 2.0',  # ya cae por 'menu' pero se deja por seguridad
 
-    # Feedback (CXF)
-    'CXF01CUX00 Preapertura',
-    'CXF01CUX01 P1 Integraciones',
-    'CXF01CUX02 P1 Estáticos',
-    'CXF01CUX03 P2 Pushes',
-    'CXF01CUX03 Sí Pushes',
-    'cxf01push01_feedbackpushes2',
-
-    # Atención y cierre
-    'Atiende agente',
-    'Transferir con un agente',
+    # Atención
+    'Transferir con un agente',  # ya cae por 'Agente' pero se deja por seguridad
     '147 - ¿Te puedo ayudar en algo más?',
-    'Cierre sin despedida + Feed back',
     'Cancelar',
 
     # No entendidos
-    'Instancia 1 | No entendidos',
-    'No entendió letra no existente en WA',
-    'No, nada de eso',
+    'No entendió letra no existente en WA',  # ya cae por 'No entend' pero se deja
     'X. Buscaba otra cosa',
 
     # Otros internos
     'TUR01CUX13 Preguntar género',
     'MO05CUX01 - Sexo',
-    'USIG - Preguntar calle y dirección (sin send location)',
-    'Invocar servicio de infracciones',
-    'Puede estacionar CTA',
+    'Puede estacionar CTA',  # ya cae por 'CTA' pero se deja por seguridad
 
-    # Pushes de Salud
-    'button_PushSalud_Confirmacion',
-    'button_PushSalud_Cancelacion',
-    'button_PushSalud_hayUnError',
-    'SA01PUSH01 - Confirmar turno',
-    'SA01PUSH03 Reprogramación',
-    'SA06PUSH0 - Hay un error',
-    'sa01push01_cancelar_turno_fallido',
-    'sa01push01api_telefono',
-    'sa01push01apiconfir_video',
-    'sa01push01cc',
-    'sa01push02api_presencial',
-    'sa01push03_cancelacion_turno_api',
-    'sa01push03apirec_video72',
-    'sa01push04api_telefono',
-    'sa01push05_demandainsatisfecha',
-    'sa01push05api_presencial',
-    'sa01push06api_video',
-    'sa01push06apirec_video24',
-    'sa01push09api_presencial',
-    'sa01push10api_video',
-    'sa01push11api_telefono',
-    'sa03push03_telemedicina',
+    # Subcontenidos de Licencias (no deben aparecer en el ranking)
+    # "Licencias" (MO05CUX02 Apertura) es la entrada principal que agrupa el trámite.
+    # Los subcontenidos de ese flujo se excluyen para evitar duplicación en el top 10:
+    'Licencia prorroga  > Consultar',  # subcontenido de Licencias - fue feb-2026 puesto 9 (62.240) - DOBLE ESPACIO es como viene en los datos
+    'MO05CUX01 > Tiene que renovar',   # subcontenido de Licencias - fue feb-2026 puesto 10 (47.990)
+    'LIC00CUX00 Validaciones',         # subcontenido de Licencias
 
-    # Pushes de Educación
-    'edu06push02_ausentismo_mensajegeneral',
-    'edu06push02_inicial_mensaje3',
-    'edu06push02_primariaysecundaria_mensaje1',
-    'edu06push02_primariaysecundaria_msj2',
-    'edu06push02_primariaysecundaria_mensaje3_v2',
-    'edu06push02_recordatorioinscripcion2026',
-    'edu10push02_inscripcion_secundaria_v2',
-    'edu10push02_tt2025_certificado',
-    'edu10push02_tt2025_confirmacionvacante_adultos_v3',
-    'edu10push02_tt2025_confirmacionvacante_secundaria_v4',
-    'edu10push02_tt2025_primeraclase_adultos',
+    # Subcontenidos de Motovehiculos (no deben aparecer en el ranking)
+    # "Trámites Vehículos SAP" (MO00CUX01 Auto o moto) es la entrada principal.
+    'MO08CUX03 Apertura',              # subcontenido de Trámites Vehículos SAP - fue ene-2026 puesto 10 (28.077)
 
-    # Pushes de Empleo
-    'em01push01_expoempleo_confirmacion_agosto2025',
-    'em01push01_expoempleo_confirmacion_agosto2025_v2',
-    'em01push01_expoempleooctubre_confirmacion',
-
-    # Pushes de SIGECI
-    'sigeci_confirmacion_01',
-    'sigeci_confirmacion_02',
-    'sigeci_confirmacion_04',
-    'sigeci_recordatorio_01',
-    'sigeci_recordatorio_02',
-    'sigeci_recordatorio_04',
-    'testpush_audiencia_sigeci_v1',
-    'testpush_sigeci_audiencia_demo',
-
-    # Pushes de SUA
-    'sua01push0api_iniciodesolicitud',
-    'sua01push0api_solicitudrechazada',
-    'sua01push0api_solicitudresuelta',
-
-    # Pushes de Derechos Humanos
-    'dh02push01api_encuesta',
-    'dh02push01api_exito',
-    'dh02push01api_intermedio_v2',
-    'dh02push01api_persona_no_acepta_ayuda',
-    'dh02push01api_persona_no_encontrada',
-    'dh02push01api_seguimiento',
-
-    # Otros pushes
-    'bo01push02_baestademoda',
-    'bo01push02_dinoenparquethays',
-    'bo01push02_eventodiadelnino',
-    'bo01push02_finde29agosto',
-    'bo01push02_mundialdelalfajor',
-    'bo01push02_mundialdetango2025',
-    'bo02push03_recordatorioinscripcioncursos',
-    'bo02push04_leypymes',
-    'bo03push02_diadelaninez',
-    'bo03push02_diadelaninez_v2',
-    'bo03push03_escuelaenfamiliaprimaria',
-    'bo03push04_inscripcionsecundaria_ultimosdias',
-    'bo04push01_internetsegura',
-    'bo06push01_parquechabuco_servicios',
-    'bo06push01_serviciosenbarrios_general',
-    'ciu01push01_encuestahorares',
-    'mo05push01_renovacionproxavencer_ut',
-    'PUSH00CUX01 Desuscripción',
 ]
+
+# ==================== NOMBRES AMIGABLES ====================
+# Mapeo de rulename técnico a nombre amigable para el reporte.
+# Se aplica al resultado final (Excel detallado + Dashboard).
+NOMBRES_AMIGABLES = {
+    'SA06CUX03 Confirmar turno Sí, dale': 'Confirmación Turnos Salud',
+    'TUR00CUX02 Turnos para salud': 'Turnos Salud',
+    'Infracciones * Apertura': 'Infracciones',
+    'TUR00CUX02 Mensaje inicial - Turnos': 'Turnos SAP',
+    'SA06CUX02 Apertura': 'Mis profesionales',
+    'MO00CUX01 Auto o moto': 'Trámites Vehículos SAP',
+    'SA10CUX01 Hospitales': 'Hospitales',
+    'MO05CUX02 Apertura': 'Licencias',
+    'TR00CUX01 Apertura': 'Trámites SAP',
+    'Busca donde está permitido estacionar': 'Buscar donde está permitido estacionar',
+}
+
+# ==================== AGRUPACIÓN ESPECIAL TUR00CUX02 ====================
+# Las rulenames que empiezan con TUR00CUX02 se agrupan:
+# se suman las sesiones de cada una, y se queda solo la de mayor valor.
+# El nombre amigable depende de cuál ganó.
+PREFIJOS_AGRUPAR = ['TUR00CUX02']
+
+# La regla de agrupación recién empieza a aplicar desde esta fecha (inclusive, YYYY-MM-DD).
+# Para períodos anteriores a esta fecha, los prefijos agrupados aparecen separados
+# en el ranking (como lo muestra el Power BI histórico).
+PREFIJOS_AGRUPAR_DESDE = '2026-05-01'
 
 # ==================== FUNCIONES ====================
 
@@ -333,16 +311,57 @@ def generate_filename(modo, mes, anio, fecha_inicio, fecha_fin):
 
     return filename_csv, filename_detalle, filename_dashboard
 
+def filtrar_por_patrones(df, rulename_col):
+    '''
+    CAPA 1: Filtra contenidos usando patrones dinámicos (CONTAINS).
+    Replica la lógica del Power BI documentada en el PDF.
+
+    Excluye toda rule_name que contenga alguno de los patrones definidos en PATRONES_EXCLUIR.
+
+    Retorna: (df_filtrado, cantidad_excluidos, detalle_por_patron)
+    '''
+    total_antes = len(df)
+
+    # Crear máscara: True si el rulename contiene algún patrón
+    mascara_excluir = df[rulename_col].astype(str).str.contains(_PATRON_REGEX, na=False)
+
+    # Detalle: contar cuántos excluye cada patrón individual (para el log)
+    detalle = {}
+    for patron in PATRONES_EXCLUIR:
+        patron_regex = re.compile(re.escape(patron), re.IGNORECASE)
+        coincidencias = df[rulename_col].astype(str).str.contains(patron_regex, na=False).sum()
+        if coincidencias > 0:
+            detalle[patron] = coincidencias
+
+    df_filtrado = df[~mascara_excluir].copy()
+    cantidad_excluidos = total_antes - len(df_filtrado)
+
+    return df_filtrado, cantidad_excluidos, detalle
+
+def filtrar_por_lista_manual(df, rulename_col):
+    '''
+    CAPA 2: Filtra contenidos usando la lista fija de exclusiones manuales.
+    Para los casos puntuales que no caen en ningún patrón de la Capa 1.
+
+    Retorna: (df_filtrado, cantidad_excluidos)
+    '''
+    total_antes = len(df)
+    df_filtrado = df[~df[rulename_col].isin(CONTENIDOS_EXCLUIR_MANUAL)].copy()
+    cantidad_excluidos = total_antes - len(df_filtrado)
+    return df_filtrado, cantidad_excluidos
+
 def procesar_contenidos(df, fecha_inicio, fecha_fin):
     '''
     Procesa el DataFrame descargado y calcula las métricas de contenidos consultados.
 
-    Lógica (extraída del Power BI "Consultas por dia 1"):
+    Lógica (extraída del Power BI "Consultas por dia 1" + PDF de lógica):
     1. Filtrar por rango de fechas
-    2. Excluir contenidos no relevantes (si APLICAR_EXCLUSIONES está activo)
-    3. Agrupar por rulename y sumar sesiones
-    4. Calcular %GT (porcentaje del gran total)
-    5. Agrupar por fecha para serie temporal diaria
+    2. CAPA 1: Excluir por patrones dinámicos (como el PBI)
+    3. CAPA 2: Excluir por lista fija de nombres exactos (respaldo)
+    4. Sumar sesiones por rulename individual
+    5. Agrupación especial TUR00CUX02: quedarse solo con la de mayor valor
+    6. Aplicar nombres amigables y calcular %GT
+    7. Serie temporal diaria (Histórico)
 
     Retorna: (df_contenidos, total_contenidos, df_historico)
     '''
@@ -399,29 +418,81 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
         ]
         print("    [INFO] Registros después de filtro de fecha: {:,}".format(len(df_filtrado)))
 
-    # 2. Excluir contenidos no relevantes
+    # 2. CAPA 1: Excluir por patrones dinámicos
     if APLICAR_EXCLUSIONES:
-        print("    [INFO] Excluyendo {} contenidos no relevantes...".format(len(CONTENIDOS_EXCLUIR)))
-        df_filtrado = df_filtrado[~df_filtrado[rulename_col].isin(CONTENIDOS_EXCLUIR)]
-        print("    [INFO] Registros después de exclusiones: {:,}".format(len(df_filtrado)))
+        print("")
+        print("    [INFO] === CAPA 1: Filtro por patrones dinámicos (CONTAINS) ===")
+        print("    [INFO] Patrones configurados: {}".format(len(PATRONES_EXCLUIR)))
+        df_filtrado, excluidos_capa1, detalle_patrones = filtrar_por_patrones(df_filtrado, rulename_col)
+        print("    [INFO] Registros excluidos por patrones: {:,}".format(excluidos_capa1))
+        print("    [INFO] Registros restantes: {:,}".format(len(df_filtrado)))
+
+        # Mostrar top 10 patrones que más excluyeron
+        if detalle_patrones:
+            top_patrones = sorted(detalle_patrones.items(), key=lambda x: x[1], reverse=True)[:10]
+            print("    [INFO] Top patrones con más coincidencias:")
+            for patron, count in top_patrones:
+                print("           '{}': {:,} registros".format(patron, count))
+
+        # 3. CAPA 2: Excluir por lista fija manual
+        print("")
+        print("    [INFO] === CAPA 2: Filtro por lista fija manual ===")
+        print("    [INFO] Items en lista manual: {}".format(len(CONTENIDOS_EXCLUIR_MANUAL)))
+        df_filtrado, excluidos_capa2 = filtrar_por_lista_manual(df_filtrado, rulename_col)
+        print("    [INFO] Registros excluidos por lista manual: {:,}".format(excluidos_capa2))
+        print("    [INFO] Registros restantes: {:,}".format(len(df_filtrado)))
+
+        total_excluidos = excluidos_capa1 + excluidos_capa2
+        print("")
+        print("    [INFO] TOTAL excluidos (ambas capas): {:,}".format(total_excluidos))
     else:
         print("    [INFO] Exclusiones DESACTIVADAS (APLICAR_EXCLUSIONES = False)")
 
-    # 3. Agrupar por RulenameUnique (prefijo antes del primer espacio) replicando lógica Power BI:
-    #    Para cada (RulenameUnique, Fecha) se conserva solo el rulename con más sesiones ese día.
-    #    Luego se suman esas sesiones por rulename dominante a lo largo del período.
+    # 4. Extraer prefijo (RulenameUnique) - lógica del PBI:
+    #    Primer palabra antes del espacio, o el rulename completo si no tiene espacio
     df_filtrado['_RulenameUnique'] = df_filtrado[rulename_col].apply(
         lambda x: str(x).split(' ')[0] if ' ' in str(x) else str(x)
     )
+
+    # 5. Para cada (prefijo, fecha): quedarse con el rulename con más sesiones ese día
+    #    Esto evita que aparezcan múltiples rulenames del mismo grupo (ej: SA06CUX03)
     if fecha_col:
         idx_max = df_filtrado.groupby(['_RulenameUnique', fecha_col])[sesiones_col].idxmax()
         df_filtrado = df_filtrado.loc[idx_max].copy()
         print("    [INFO] Registros tras agrupación por prefijo (max por día): {:,}".format(len(df_filtrado)))
 
+    # 6. Sumar sesiones por rulename (tras la agrupación por prefijo)
     df_agrupado = df_filtrado.groupby(rulename_col)[sesiones_col].sum().reset_index()
     df_agrupado.columns = ['Rulename', 'Suma de Sesiones']
 
-    # 4. Ordenar descendente
+    # 7. Agrupación especial para prefijos en PREFIJOS_AGRUPAR (ej: TUR00CUX02)
+    #    Después de la agrupación por prefijo, pueden quedar múltiples rulenames
+    #    del mismo prefijo (porque cada una ganó en días distintos).
+    #    Para estos prefijos: quedarse SOLO con la de mayor valor total.
+    #    NOTA: Solo se aplica desde PREFIJOS_AGRUPAR_DESDE en adelante.
+    aplicar_agrupar = fecha_inicio and fecha_inicio >= PREFIJOS_AGRUPAR_DESDE
+    if not aplicar_agrupar:
+        print("    [INFO] Regla PREFIJOS_AGRUPAR NO aplicada (período < {}): los prefijos agrupados aparecen separados".format(PREFIJOS_AGRUPAR_DESDE))
+    else:
+        for prefijo in PREFIJOS_AGRUPAR:
+            mascara = df_agrupado['Rulename'].str.startswith(prefijo)
+            df_prefijo = df_agrupado[mascara]
+            if len(df_prefijo) > 1:
+                idx_max = df_prefijo['Suma de Sesiones'].idxmax()
+                ganadora = df_agrupado.loc[idx_max, 'Rulename']
+                eliminadas = df_prefijo[df_prefijo.index != idx_max]
+                print("    [INFO] Agrupación {}: ganó '{}' ({:,})".format(
+                    prefijo, ganadora, int(df_agrupado.loc[idx_max, 'Suma de Sesiones'])))
+                for _, row in eliminadas.iterrows():
+                    print("           Eliminada: '{}' ({:,})".format(row['Rulename'], int(row['Suma de Sesiones'])))
+                df_agrupado = df_agrupado.drop(eliminadas.index)
+
+    # 6. Aplicar nombres amigables
+    df_agrupado['Nombre Amigable'] = df_agrupado['Rulename'].map(NOMBRES_AMIGABLES)
+    # Si no tiene nombre amigable, usar el rulename original
+    df_agrupado['Nombre Amigable'] = df_agrupado['Nombre Amigable'].fillna(df_agrupado['Rulename'])
+
+    # Ordenar descendente
     df_agrupado = df_agrupado.sort_values('Suma de Sesiones', ascending=False).reset_index(drop=True)
 
     total_contenidos = len(df_agrupado)
@@ -429,13 +500,13 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     print("    [INFO] Total contenidos relevantes únicos: {:,}".format(total_contenidos))
     print("    [INFO] Total sesiones: {:,}".format(int(total_sesiones)))
 
-    # 5. Calcular %GT (porcentaje del gran total)
+    # Calcular %GT (porcentaje del gran total)
     if total_sesiones > 0:
         df_agrupado['% del Total'] = df_agrupado['Suma de Sesiones'] / total_sesiones
     else:
         df_agrupado['% del Total'] = 0
 
-    # 6. Serie temporal diaria (Histórico)
+    # 7. Serie temporal diaria (Histórico)
     df_historico = None
     if fecha_col:
         df_historico = df_filtrado.groupby(fecha_col)[sesiones_col].sum().reset_index()
@@ -443,14 +514,14 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
         df_historico = df_historico.sort_values('Fecha').reset_index(drop=True)
         print("    [INFO] Días en serie temporal: {}".format(len(df_historico)))
 
-    # Mostrar Top 10 en consola
+    # Mostrar Top 10 en consola (con nombres amigables)
     print("")
     print("    TOP 10 CONTENIDOS MÁS CONSULTADOS:")
     print("    " + "-" * 70)
     for idx, row in df_agrupado.head(10).iterrows():
         print("    {:2d}. {:45s} {:>10,}  ({:.2f}%)".format(
             idx + 1,
-            row['Rulename'][:45],
+            row['Nombre Amigable'][:45],
             int(row['Suma de Sesiones']),
             row['% del Total'] * 100
         ))
@@ -495,7 +566,7 @@ def create_detail_excel(filepath, df_contenidos, df_historico, descripcion):
     ws['A2'].font = Font(size=10, italic=True)
 
     # Headers de tabla (fila 4)
-    ws['A4'] = 'Rulename'
+    ws['A4'] = 'Contenido'
     ws['B4'] = 'Suma de Sesiones'
     ws['C4'] = '% del Total'
 
@@ -506,7 +577,7 @@ def create_detail_excel(filepath, df_contenidos, df_historico, descripcion):
     # Datos (todos los contenidos)
     for idx, row in df_contenidos.iterrows():
         fila = 5 + idx
-        ws['A{}'.format(fila)] = row['Rulename']
+        ws['A{}'.format(fila)] = row['Nombre Amigable']
         ws['B{}'.format(fila)] = int(row['Suma de Sesiones'])
         ws['B{}'.format(fila)].number_format = '#,##0'
         ws['C{}'.format(fila)] = row['% del Total']
@@ -579,7 +650,7 @@ def format_top10_text(df_contenidos):
         sesiones = int(row['Suma de Sesiones'])
         # Formato con punto como separador de miles (estilo argentino)
         sesiones_fmt = '{:,}'.format(sesiones).replace(',', '.')
-        lines.append('{}- {}: ({})'.format(idx + 1, row['Rulename'], sesiones_fmt))
+        lines.append('{}- {}: ({})'.format(idx + 1, row['Nombre Amigable'], sesiones_fmt))
     return '\n'.join(lines)
 
 def create_dashboard(filepath, valor_d11, modo, mes, anio, fecha_inicio, fecha_fin):
@@ -833,22 +904,42 @@ def execute_query_and_save():
 if __name__ == "__main__":
     print("")
     print("=" * 60)
+    print("  IMPORTANTE: LOGIN AWS REQUERIDO")
+    print("=" * 60)
+    print("  Antes de continuar, asegurate de estar logueado en AWS.")
+    print("  Si tu token expiró, ejecutá en otra terminal:")
+    print("")
+    print("      aws-azure-login --profile default --mode=gui")
+    print("")
+    print("=" * 60)
+    try:
+        input("  Presioná ENTER para continuar (o Ctrl+C para cancelar)...")
+    except KeyboardInterrupt:
+        print("")
+        print("  Cancelado por el usuario.")
+        raise SystemExit(0)
+    print("")
+
+    print("")
+    print("=" * 60)
     print("SCRIPT: CONTENIDOS CONSULTADOS - QUERY ATHENA")
     print("=" * 60)
     print("Rol requerido: PIBAConsumeBoti")
     print("Salida: CSV + Excel Detalle (2 hojas) + Dashboard (celda D11)")
     print("Query: SELECT * FROM boti_vw_buscador_rulename")
     print("")
-    print("LÓGICA:")
+    print("LÓGICA (filtrado en 2 capas como el PBI):")
     print("  1. Descargar vista completa de Athena")
     print("  2. Filtrar por rango de fechas del período")
     if APLICAR_EXCLUSIONES:
-        print("  3. Excluir contenidos no relevantes ({} reglas)".format(len(CONTENIDOS_EXCLUIR)))
+        print("  3. CAPA 1: Excluir por {} patrones dinámicos (CONTAINS)".format(len(PATRONES_EXCLUIR)))
+        print("  4. CAPA 2: Excluir por {} nombres exactos (lista manual)".format(len(CONTENIDOS_EXCLUIR_MANUAL)))
     else:
-        print("  3. Exclusiones DESACTIVADAS")
-    print("  4. Agrupar por rulename y sumar sesiones")
-    print("  5. Generar tabla completa con % del total")
-    print("  6. Generar serie temporal diaria (Histórico)")
+        print("  3-4. Exclusiones DESACTIVADAS")
+    print("  5. Extraer prefijo y agrupar por (prefijo, fecha)")
+    print("  6. Quedarse con rulename de más sesiones por (prefijo, fecha)")
+    print("  7. Sumar sesiones por rulename y calcular % del total")
+    print("  8. Generar serie temporal diaria (Histórico)")
     print("")
     print("MODOS:")
     print("  [1] MES COMPLETO: MES + AÑO")
