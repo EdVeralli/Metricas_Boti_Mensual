@@ -161,15 +161,20 @@ NOMBRES_AMIGABLES = {
     'Busca donde está permitido estacionar': 'Buscar donde está permitido estacionar',
 }
 
-# ==================== AGRUPACIÓN ESPECIAL TUR00CUX02 ====================
-# Las rulenames que empiezan con TUR00CUX02 se agrupan:
-# se suman las sesiones de cada una, y se queda solo la de mayor valor.
-# El nombre amigable depende de cuál ganó.
-PREFIJOS_AGRUPAR = ['TUR00CUX02']
+# ==================== AGRUPACIÓN ESPECIAL POR PREFIJO ====================
+# Lista de prefijos cuyo flujo (varios rulenames con el mismo prefijo) debe
+# colapsarse a un solo rulename: el de mayor cantidad de sesiones gana, los
+# demas se eliminan del ranking.
+# DEJAR LISTA VACIA si no se quiere agrupar ningun prefijo (todos los rulenames
+# aparecen separados, como muestra el Power BI historico).
+#
+# Nota: TUR00CUX02 estaba aca historicamente, pero ahora se desea que sus
+# distintos rulenames (Turnos para salud / Mensaje inicial - Turnos / etc.)
+# aparezcan separados en el ranking, asi que la lista quedo vacia.
+PREFIJOS_AGRUPAR = []
 
-# La regla de agrupación recién empieza a aplicar desde esta fecha (inclusive, YYYY-MM-DD).
-# Para períodos anteriores a esta fecha, los prefijos agrupados aparecen separados
-# en el ranking (como lo muestra el Power BI histórico).
+# La regla de agrupacion recien empieza a aplicar desde esta fecha (inclusive, YYYY-MM-DD).
+# Solo tiene efecto cuando PREFIJOS_AGRUPAR no esta vacia.
 PREFIJOS_AGRUPAR_DESDE = '2026-05-01'
 
 # ==================== CAPA 3: REPORTAR Y EXCLUIR ====================
@@ -179,6 +184,20 @@ PREFIJOS_AGRUPAR_DESDE = '2026-05-01'
 # Match EXACTO sobre el rulename completo.
 RULENAMES_REPORTAR_Y_EXCLUIR = [
     'SA06CUX02 Mensaje de error general',
+]
+
+# ==================== RULENAMES_PRESERVAR (paso 5) ====================
+# Por defecto, el paso 5 consolida rulenames del mismo prefijo dejando solo
+# el de mayor sesiones por dia (ej: para SA06CUX03 se queda solo el ganador
+# diario y se descartan las otras variantes).
+#
+# Los rulenames en esta lista quedan EXENTOS de esa consolidacion: siempre se
+# preservan TODAS sus filas, asi mantienen el conteo de sesiones completo y
+# aparecen en el ranking con su volumen real.
+# Match EXACTO sobre el rulename completo.
+RULENAMES_PRESERVAR = [
+    'TUR00CUX02 Mensaje inicial - Turnos',  # mapea a 'Turnos SAP' en NOMBRES_AMIGABLES
+    'SA06CUX02 Apertura',                   # mapea a 'Mis profesionales' en NOMBRES_AMIGABLES
 ]
 
 # ==================== DESCRIPCIONES AUTOMATICAS DESDE TSV ====================
@@ -570,10 +589,22 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
 
     # 5. Para cada (prefijo, fecha): quedarse con el rulename con más sesiones ese día
     #    Esto evita que aparezcan múltiples rulenames del mismo grupo (ej: SA06CUX03)
+    #    EXCEPCIÓN: los rulenames en RULENAMES_PRESERVAR quedan exentos de la
+    #    consolidacion: se preservan TODAS sus filas, asi conservan su volumen total.
     if fecha_col:
         idx_max = df_filtrado.groupby(['_RulenameUnique', fecha_col])[sesiones_col].idxmax()
-        df_filtrado = df_filtrado.loc[idx_max].copy()
+        indices_finales = set(idx_max.tolist())
+        preservados = 0
+        if RULENAMES_PRESERVAR:
+            mask_preservar = df_filtrado[rulename_col].isin(RULENAMES_PRESERVAR)
+            idx_preservar = df_filtrado[mask_preservar].index
+            indices_nuevos = set(idx_preservar.tolist()) - indices_finales
+            preservados = len(indices_nuevos)
+            indices_finales.update(idx_preservar.tolist())
+        df_filtrado = df_filtrado.loc[sorted(indices_finales)].copy()
         print("    [INFO] Registros tras agrupación por prefijo (max por día): {:,}".format(len(df_filtrado)))
+        if preservados > 0:
+            print("    [INFO] {} filas adicionales preservadas (rulenames en RULENAMES_PRESERVAR)".format(preservados))
 
     # 6. Sumar sesiones por rulename (tras la agrupación por prefijo)
     df_agrupado = df_filtrado.groupby(rulename_col)[sesiones_col].sum().reset_index()
@@ -584,8 +615,10 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     #    del mismo prefijo (porque cada una ganó en días distintos).
     #    Para estos prefijos: quedarse SOLO con la de mayor valor total.
     #    NOTA: Solo se aplica desde PREFIJOS_AGRUPAR_DESDE en adelante.
-    aplicar_agrupar = fecha_inicio and fecha_inicio >= PREFIJOS_AGRUPAR_DESDE
-    if not aplicar_agrupar:
+    aplicar_agrupar = bool(PREFIJOS_AGRUPAR) and fecha_inicio and fecha_inicio >= PREFIJOS_AGRUPAR_DESDE
+    if not PREFIJOS_AGRUPAR:
+        print("    [INFO] PREFIJOS_AGRUPAR vacio: ningun prefijo se agrupa, todos los rulenames aparecen separados")
+    elif not aplicar_agrupar:
         print("    [INFO] Regla PREFIJOS_AGRUPAR NO aplicada (período < {}): los prefijos agrupados aparecen separados".format(PREFIJOS_AGRUPAR_DESDE))
     else:
         for prefijo in PREFIJOS_AGRUPAR:
