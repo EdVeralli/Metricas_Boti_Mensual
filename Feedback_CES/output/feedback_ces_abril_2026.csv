@@ -1,0 +1,60 @@
+﻿rule_name,cant_sesiones
+CXF01CUX00 Preapertura,320340
+CXF01CUX02 Más o menos Estáticos,1627
+CXF01CUX02 Muy conforme Estáticos,2419
+CXF01CUX02 P1 Estáticos,163520
+CXF01CUX01 Fácil Integraciones,5940
+CXF01CUX04 Difícil CATs,1715
+CXF01CUX01 P4 Integraciones,23977
+CXF01CUX04 Fácil CATs,3354
+CXF01CUX01 No Integraciones,14760
+CXF01CUX04 P1 CATs,36992
+CXF01CUX04 P2 CATs,19950
+CXF01CUX01 Muy fácil Integraciones,13694
+CXF01CUX01 Sí Integraciones,25217
+CXF01CUX01 P3 Integraciones,27961
+CXF01CUX02 No Estáticos,7148
+CXF01CUX03 Muy conforme Pushes,7
+CXF01CUX02 Difícil Estáticos,1086
+CXF01CUX02 P4 Estáticos,7607
+CXF01CUX02 No sé Estáticos,997
+CXF01CUX04 Muy fácil CATs,4867
+CXF01CUX01 Conforme Integraciones,5630
+CXF01CUX02 P2 Estáticos,13491
+CXF01CUX04 P3 CATs,16656
+CXF01CUX01 P1 Integraciones,156843
+CXF01CUX04 Sí CATs,11614
+CXF01CUX01 P2 Integraciones,39976
+CXF01CUX04 Muy inconforme CATs,3285
+CXF01CUX00 Cierre Sin Sugerencia,14933
+CXF01CUX01 Muy difícil Integraciones,2970
+CXF01CUX02 Sí Estáticos,6343
+CXF01CUX04 Muy conforme CATs,7472
+CXF01CUX01 Inconforme Integraciones,2024
+CXF01CUX03 Sí Pushes,21
+CXF01CUX02 Fácil Estáticos,1647
+CXF01CUX03 Muy inconforme Pushes,2
+CXF01CUX04 P4 CATs,14853
+CXF01CUX02 Muy difícil Estáticos,2340
+CXF01CUX01 No sé Integraciones ,2271
+CXF01CUX01 Más o menos Integraciones,3649
+CXF01CUX02 Muy inconforme Estáticos,1511
+CXF01CUX01 Muy conforme Integraciones,11622
+CXF01CUX04 Conforme CATs,2789
+CXF01CUX03 P3 Pushes,15
+CXF01CUX03 No Pushes,7
+CXF01CUX03 No avisos Pushes,7
+CXF01CUX04 Muy difícil CATs,2535
+CXF01CUX03 P2 Pushes,28
+CXF01CUX02 P3 Estáticos,8963
+CXF01CUX04 Inconforme CATs,1699
+CXF01CUX01 Muy inconforme Integraciones,2430
+CXF01CUX02 Muy fácil Estáticos,2265
+CXF01CUX03 Conforme Pushes,6
+CXF01CUX04 No CATs,8339
+CXF01CUX04 No sé CATs,1420
+CXF01CUX04 Ni fácil ni difícil CATs,2390
+CXF01CUX02 Inconforme Estáticos,973
+CXF01CUX02 Conforme Estáticos,1708
+CXF01CUX00 Cierre Con sugerencia,31589
+CXF01CUX01 Difícil Integraciones,1710

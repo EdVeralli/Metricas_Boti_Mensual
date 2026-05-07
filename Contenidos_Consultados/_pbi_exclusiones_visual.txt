@@ -1,0 +1,113 @@
+Total rulenames excluidos por el filtro del visual: 108
+
+  1. Atiende agente
+  2. 147 - ¿Te puedo ayudar en algo más?
+  3. Onboarding Coyuntura (21 de agosto - extensión línea D)
+  4. Onboarding Coyuntura (5/8) - Semana Mundial de la Lactancia
+  5. Onboarding Coyuntura (subte – cierre Plaza Italia 11/8)
+  6. Onboarding Coyuntura Día de la Niñez - finde largo agosto
+  7. Onboarding Coyuntura línea D (cierre de estación Agüero + partido River)
+  8. Onboarding Agendame soy Boti
+  9. Onboarding Principal
+ 10. Onboarding Temporal en BA - Alerta Amarilla
+ 11. TUR01CUX13 Preguntar género
+ 12. button_PushSalud_Confirmacion
+ 13. edu10push02_tt2025_confirmacionvacante_adultos_v3
+ 14. edu10push02_tt2025_confirmacionvacante_secundaria_v4
+ 15. em01push01_expoempleo_confirmacion_agosto2025
+ 16. em01push01_expoempleo_confirmacion_agosto2025_v2
+ 17. SA01PUSH01 - Confirmar turno
+ 18. sigeci_confirmacion_01
+ 19. sigeci_confirmacion_02
+ 20. Instancia 1 | No entendidos
+ 21. button_PushSalud_Cancelacion
+ 22. sa01push01_cancelar_turno_fallido
+ 23. sa01push03_cancelacion_turno_api
+ 24. bo02push03_recordatorioinscripcioncursos
+ 25. sigeci_recordatorio_01
+ 26. sigeci_recordatorio_02
+ 27. Bifurcador OB trámites y turnos
+ 28. BOT02CUX03 Bifurcador
+ 29. DDHH03CUX01 Bifurcador corto derechos
+ 30. DDHH03CUX01 Bifurcador derechos
+ 31. DH11CUX01 Bifurcador
+ 32. SUA01CUX17 Bifurcador pintura o hidrolavado
+ 33. 3. Login miBA
+ 34. 3.1 Login miBA
+ 35. Menú show buttons
+ 36. CXF01CUX00 Preapertura
+ 37. CXF01CUX01 P1 Integraciones
+ 38. CXF01CUX03 P2 Pushes
+ 39. CXF01CUX03 Sí Pushes
+ 40. cxf01push01_feedbackpushes2
+ 41. bo01push02_dinoenparquethays
+ 42. bo01push02_eventodiadelnino
+ 43. bo01push02_finde29agosto
+ 44. bo01push02_mundialdelalfajor
+ 45. bo01push02_mundialdetango2025
+ 46. bo02push04_leypymes
+ 47. bo03push02_diadelaninez
+ 48. bo03push02_diadelaninez_v2
+ 49. bo03push03_escuelaenfamiliaprimaria
+ 50. bo03push04_inscripcionsecundaria_ultimosdias
+ 51. bo04push01_internetsegura
+ 52. bo06push01_parquechabuco_servicios
+ 53. bo06push01_serviciosenbarrios_general
+ 54. button_PushSalud_hayUnError
+ 55. ciu01push01_encuestahorares
+ 56. dh02push01api_encuesta
+ 57. dh02push01api_exito
+ 58. dh02push01api_intermedio_v2
+ 59. dh02push01api_persona_no_acepta_ayuda
+ 60. dh02push01api_persona_no_encontrada
+ 61. dh02push01api_seguimiento
+ 62. edu06push02_ausentismo_mensajegeneral
+ 63. edu06push02_inicial_mensaje3
+ 64. edu06push02_primariaysecundaria_mensaje1
+ 65. edu10push02_inscripcion_secundaria_v2
+ 66. edu10push02_tt2025_certificado
+ 67. edu10push02_tt2025_primeraclase_adultos
+ 68. PUSH00CUX01 Desuscripción
+ 69. sa01push01api_telefono
+ 70. sa01push01apiconfir_video
+ 71. sa01push01cc
+ 72. sa01push02api_presencial
+ 73. SA01PUSH03 Reprogramación
+ 74. sa01push03apirec_video72
+ 75. sa01push04api_telefono
+ 76. sa01push05_demandainsatisfecha
+ 77. sa01push05api_presencial
+ 78. sa01push06api_video
+ 79. sa01push06apirec_video24
+ 80. sa01push09api_presencial
+ 81. sa01push10api_video
+ 82. sa01push11api_telefono
+ 83. sa03push03_telemedicina
+ 84. SA06PUSH0 - Hay un error
+ 85. sua01push0api_iniciodesolicitud
+ 86. sua01push0api_solicitudrechazada
+ 87. sua01push0api_solicitudresuelta
+ 88. testpush_audiencia_sigeci_v1
+ 89. testpush_sigeci_audiencia_demo
+ 90. bo01push02_baestademoda
+ 91. MENU PRINCIPAL 2.0
+ 92. CXF01CUX02 P1 Estáticos
+ 93. Más temas post Menú 2.0
+ 94. miBA - Login exitoso
+ 95. TU01CUX03 Bifurcador Colas Atención - Paso 2 Español
+ 96. Invocar servicio de infracciones
+ 97. sigeci_recordatorio_04
+ 98. Cancelar
+ 99. No entendió letra no existente en WA
+100. sigeci_confirmacion_04
+101. USIG - Preguntar calle y dirección (sin send location)
+102. Cierre sin despedida + Feed back
+103. Onboarding Temporal en BA - Alerta Naranja
+104. Coyuntura (cierre de estación Carlos Gardel línea B)
+105. No, nada de eso
+106. X. Buscaba otra cosa
+107. Puede estacionar CTA
+108. Transferir con un agente
+Total rulenames excluidos por el filtro del visual: 1
+
+  1. MO05CUX01 - Sexo

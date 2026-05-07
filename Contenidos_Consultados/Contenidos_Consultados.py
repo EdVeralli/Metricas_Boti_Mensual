@@ -30,6 +30,8 @@ from datetime import datetime
 from calendar import monthrange
 import os
 import re
+import csv
+import glob
 import openpyxl
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
@@ -138,6 +140,9 @@ CONTENIDOS_EXCLUIR_MANUAL = [
     # "Trámites Vehículos SAP" (MO00CUX01 Auto o moto) es la entrada principal.
     'MO08CUX03 Apertura',              # subcontenido de Trámites Vehículos SAP - fue ene-2026 puesto 10 (28.077)
 
+    # Subcontenidos de Salud / Turnos (no deben aparecer en el ranking)
+    'SA06CUX03 Desambiguar confirmarción',  # subcontenido del flujo SA06CUX03
+
 ]
 
 # ==================== NOMBRES AMIGABLES ====================
@@ -167,7 +172,116 @@ PREFIJOS_AGRUPAR = ['TUR00CUX02']
 # en el ranking (como lo muestra el Power BI histórico).
 PREFIJOS_AGRUPAR_DESDE = '2026-05-01'
 
+# ==================== CAPA 3: REPORTAR Y EXCLUIR ====================
+# Rulenames que se procesan COMO SI estuvieran incluidos para calcular su posicion
+# en el ranking, y luego se excluyen del resultado final.
+# Util para saber si un contenido excluido habria entrado al top 10 (sin que aparezca).
+# Match EXACTO sobre el rulename completo.
+RULENAMES_REPORTAR_Y_EXCLUIR = [
+    'SA06CUX02 Mensaje de error general',
+]
+
+# ==================== DESCRIPCIONES AUTOMATICAS DESDE TSV ====================
+# Cuando un rulename empieza con un codigo del estilo SA03CUX01 (sin nombre amigable manual),
+# se busca ese codigo en la columna 'Topic' del TSV de reglas mas reciente y se usa
+# la descripcion que sigue al codigo.
+# Ejemplo: rulename "SA03CUX01 Apertura" + Topic "01. SA03CUX01 - Vacunacion"
+#          --> Nombre Amigable = "Vacunacion"
+_PATRON_CODIGO = re.compile(r'^[A-Z]{2,4}\d{2}CUX\d{2}$')
+_PATRON_TOPIC_CODIGO = re.compile(r'\b([A-Z]{2,4}\d{2}CUX\d{2})\b\s*[-:.]*\s*(.+)$')
+_DESCRIPCIONES_TSV_CACHE = None  # se carga lazy en la primera llamada
+
 # ==================== FUNCIONES ====================
+
+def _find_all_tsvs():
+    '''Busca TODOS los TSV de reglas en el directorio del script (rules-*.tsv).
+    Devuelve la lista ordenada ascendentemente (mas viejos primero), para que al
+    consolidar los mas nuevos sobreescriban a los mas viejos.'''
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return sorted(glob.glob(os.path.join(script_dir, 'rules-*.tsv')))
+
+def cargar_descripciones_tsv():
+    '''
+    Lee TODOS los TSV de reglas (rules-*.tsv) del directorio del script y arma
+    un dict {codigo: descripcion} a partir de la columna 'Topic'.
+
+    En caso de que un mismo codigo aparezca en varios TSV con descripciones
+    distintas, gana el TSV mas reciente (los archivos se procesan en orden
+    ascendente, por eso los posteriores sobreescriben).
+
+    Cachea el resultado en memoria para no releer los archivos en cada llamada.
+    Encoding latin-1 (ISO-8859) que es como vienen los exports de Botmaker.
+    '''
+    global _DESCRIPCIONES_TSV_CACHE
+    if _DESCRIPCIONES_TSV_CACHE is not None:
+        return _DESCRIPCIONES_TSV_CACHE
+
+    descripciones = {}
+    tsv_paths = _find_all_tsvs()
+    if not tsv_paths:
+        print("    [WARN] No se encontro ningun rules-*.tsv para descripciones automaticas")
+        _DESCRIPCIONES_TSV_CACHE = descripciones
+        return descripciones
+
+    archivos_info = []  # (filename, codigos_en_archivo, codigos_nuevos_aportados, codigos_actualizados)
+    for tsv_path in tsv_paths:
+        codigos_archivo = 0
+        codigos_nuevos = 0
+        codigos_actualizados = 0
+        try:
+            with open(tsv_path, 'r', encoding='latin-1', newline='') as f:
+                reader = csv.DictReader(f, delimiter='\t')
+                vistos_en_archivo = set()
+                for row in reader:
+                    topic = (row.get('Topic') or '').strip()
+                    if not topic:
+                        continue
+                    m = _PATRON_TOPIC_CODIGO.search(topic)
+                    if m:
+                        code = m.group(1).upper()
+                        desc = m.group(2).strip().rstrip('.,;:')
+                        if not desc:
+                            continue
+                        if code in vistos_en_archivo:
+                            # Mismo codigo aparece varias veces en este TSV, ya lo procesamos
+                            continue
+                        vistos_en_archivo.add(code)
+                        codigos_archivo += 1
+                        if code not in descripciones:
+                            codigos_nuevos += 1
+                        elif descripciones[code] != desc:
+                            codigos_actualizados += 1
+                        # Latest wins: el actual (mas nuevo) sobreescribe al anterior
+                        descripciones[code] = desc
+            archivos_info.append((os.path.basename(tsv_path), codigos_archivo, codigos_nuevos, codigos_actualizados))
+        except Exception as e:
+            print("    [WARN] Error leyendo {}: {}".format(tsv_path, e))
+
+    print("    [INFO] Descripciones automaticas consolidadas desde {} TSV (total: {} codigos unicos):".format(
+        len(archivos_info), len(descripciones)
+    ))
+    for nombre, total_archivo, nuevos, actualizados in archivos_info:
+        extras = ""
+        if actualizados > 0:
+            extras = ", {} actualizados por nuevo".format(actualizados)
+        print("           - {}: {} codigos en archivo ({} nuevos{})".format(
+            nombre, total_archivo, nuevos, extras
+        ))
+
+    _DESCRIPCIONES_TSV_CACHE = descripciones
+    return descripciones
+
+def aplicar_descripcion_automatica(rulename, descripciones_tsv):
+    '''
+    Si el rulename empieza con un codigo conocido en el TSV, devuelve la descripcion.
+    Si no matchea el patron de codigo o no esta en el dict, devuelve None.
+    '''
+    if not rulename or ' ' not in str(rulename):
+        return None
+    primer_token = str(rulename).split(' ')[0]
+    if not _PATRON_CODIGO.fullmatch(primer_token):
+        return None
+    return descripciones_tsv.get(primer_token.upper())
 
 def read_date_config(config_file):
     '''
@@ -487,13 +601,50 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
                     print("           Eliminada: '{}' ({:,})".format(row['Rulename'], int(row['Suma de Sesiones'])))
                 df_agrupado = df_agrupado.drop(eliminadas.index)
 
-    # 6. Aplicar nombres amigables
+    # 6. Aplicar nombres amigables (cascada: NOMBRES_AMIGABLES manual > descripcion del TSV > rulename original)
     df_agrupado['Nombre Amigable'] = df_agrupado['Rulename'].map(NOMBRES_AMIGABLES)
-    # Si no tiene nombre amigable, usar el rulename original
+
+    # Fallback 1: para los que no estan en NOMBRES_AMIGABLES, intentar lookup por codigo en TSV
+    descripciones_tsv = cargar_descripciones_tsv()
+    if descripciones_tsv:
+        mask_sin_amigable = df_agrupado['Nombre Amigable'].isna()
+        if mask_sin_amigable.any():
+            df_agrupado.loc[mask_sin_amigable, 'Nombre Amigable'] = (
+                df_agrupado.loc[mask_sin_amigable, 'Rulename'].apply(
+                    lambda r: aplicar_descripcion_automatica(r, descripciones_tsv)
+                )
+            )
+
+    # Fallback 2: si tampoco hubo match en TSV, usar el rulename original
     df_agrupado['Nombre Amigable'] = df_agrupado['Nombre Amigable'].fillna(df_agrupado['Rulename'])
 
     # Ordenar descendente
     df_agrupado = df_agrupado.sort_values('Suma de Sesiones', ascending=False).reset_index(drop=True)
+
+    # ==== CAPA 3: Reportar posicion en ranking y luego excluir ====
+    # Para cada rulename marcado: mostrar en que puesto habria estado y si entraba al top 10,
+    # y despues quitarlo del df para que no aparezca en el output final.
+    if APLICAR_EXCLUSIONES and RULENAMES_REPORTAR_Y_EXCLUIR:
+        print("")
+        print("    [INFO] === CAPA 3: Reporte de posicion (rulenames marcados para excluir tras calcular su rank) ===")
+        indices_a_eliminar = []
+        for rn in RULENAMES_REPORTAR_Y_EXCLUIR:
+            match = df_agrupado[df_agrupado['Rulename'] == rn]
+            if not match.empty:
+                idx_orig = match.index[0]
+                posicion = idx_orig + 1  # 1-indexed
+                sesiones_rn = int(match.iloc[0]['Suma de Sesiones'])
+                top10_flag = "SI ENTRA AL TOP 10" if posicion <= 10 else "fuera del top 10"
+                print("    [INFO] '{}'".format(rn))
+                print("           -> habria estado en el puesto #{} con {:,} sesiones ({})".format(
+                    posicion, sesiones_rn, top10_flag
+                ))
+                indices_a_eliminar.append(idx_orig)
+            else:
+                print("    [INFO] '{}' no aparece en el dataset del periodo (no entra al ranking)".format(rn))
+        if indices_a_eliminar:
+            df_agrupado = df_agrupado.drop(indices_a_eliminar).reset_index(drop=True)
+            print("    [INFO] Excluidos del ranking final: {}".format(len(indices_a_eliminar)))
 
     total_contenidos = len(df_agrupado)
     total_sesiones = df_agrupado['Suma de Sesiones'].sum()

@@ -1,0 +1,798 @@
+{
+  "A": [
+    "a"
+  ],
+  "AC": [
+    "AC01CUX03 Gobierno Provincia Bs As",
+    "AC04CAT01 Pedido de datos mail"
+  ],
+  "ACCIONES": [
+    "Acciones previas a cada mensaje"
+  ],
+  "AG": [
+    "AG01CUX01 Patentes",
+    "AG01CUX01 Usuario no responde pregunta"
+  ],
+  "AGC": [
+    "AGC02CUX01 Apertura",
+    "AGC01CUX03 Número de solicitud válido"
+  ],
+  "AGENTES": [
+    "Agentes humanos (Apertura) > Es por otro tema * Repsonse",
+    "Agentes humanos (Apertura) > Es por otro tema (Response) > Chatear con alguien * Response"
+  ],
+  "AGRADECIMIENTO": [
+    "Agradecimiento gestión"
+  ],
+  "AI": [
+    "AI Renovación",
+    "AI Otorgamiento"
+  ],
+  "AM": [
+    "AM02CUX03 Mapa de refugios",
+    "AM04CUX05  Apertura"
+  ],
+  "AMC": [
+    "AMC04CUX04 Público general"
+  ],
+  "AMISTAD": [
+    "Amistad"
+  ],
+  "ANTECEDENTES": [
+    "Antecedentes penales | Certificado de residencia precaria "
+  ],
+  "AP": [
+    "ap_mitadcursada"
+  ],
+  "APERTURA": [
+    "Apertura | SIGECI Nueva",
+    "Apertura Información sumaria testimonial de Declaración de domicilio"
+  ],
+  "ATIENDE": [
+    "Atiende agente",
+    "Atiende agente apagar bot"
+  ],
+  "AUDIO": [
+    "Audio"
+  ],
+  "AUSA": [
+    "AUSA (Apertura) > Ver estado de cuenta (Apertura) > Si tiene saldos a pagar * Response",
+    "AUSA (Apertura) > Ver estado de cuenta (Apertura) > Si tiene saldo a favor * Response"
+  ],
+  "AUTOS": [
+    "Autos Abandonados - Intentar más tarde"
+  ],
+  "AYUDAR": [
+    "Ayudar con algo más | SIGECI",
+    "Ayudar con algo más | Estado de Trámites"
+  ],
+  "BA": [
+    "BA Empresas",
+    "BA Pyme"
+  ],
+  "BANNER": [
+    "Banner BAX web"
+  ],
+  "BICICLETAS": [
+    "Bicicletas (Apertura) > Bicicleterías * Response",
+    "Bicicletas (Apertura) > Qué ciclovías hay * Response"
+  ],
+  "BICICLETERO": [
+    "Bicicletero - Buscar por ubicacion "
+  ],
+  "BIFURCADOR": [
+    "Bifurcador OB trámites y turnos"
+  ],
+  "BO": [
+    "bo05cux01_donaciondesangre_v2",
+    "bo07push01_paseoambiental"
+  ],
+  "BOLET": [
+    "Boletín Oficial"
+  ],
+  "BOT": [
+    "BOT01CUX01 Imágenes, audios y archivos en WA",
+    "BOT06CUX01 Respuesta correcta 3"
+  ],
+  "BUSCA": [
+    "Busca donde está permitido estacionar",
+    "Busca donde está permitido estacionar con dirección incluída en mensaje"
+  ],
+  "BUSCAR": [
+    "Buscar Código Postal",
+    "Buscar mi Cesac (Apertura) > Cola de atención"
+  ],
+  "BUTTON": [
+    "button_PushSalud_Confirmacion",
+    "button_PushSalud_hayUnError"
+  ],
+  "BX": [
+    "BX02CUX01 Pregunta 1",
+    "BX01CUX01 Apertura"
+  ],
+  "C": [
+    "Cómo lo tramito | Certificado de residencia precaria ",
+    "Cómo lo renuevo | Certificado de residencia precaria "
+  ],
+  "CANCELAR": [
+    "Cancelar"
+  ],
+  "CARI": [
+    "Cariño"
+  ],
+  "CARROUSEL": [
+    "Carrousel"
+  ],
+  "CARRUSEL": [
+    "Carrusel"
+  ],
+  "CENTRALIZAR": [
+    "Centralizar rúbrica"
+  ],
+  "CERR": [
+    "Cerró sesión dentro de un flujo sin cerrar"
+  ],
+  "CERTIFICACI": [
+    "Certificación de datos"
+  ],
+  "CERTIFICADO": [
+    "Certificado de matrícula"
+  ],
+  "CHAU": [
+    "Chau"
+  ],
+  "CHE": [
+    "Che"
+  ],
+  "CIERRE": [
+    "Cierre sin despedida + Feed back",
+    "Cierre"
+  ],
+  "CIU": [
+    "CIU02CUX01 Más información",
+    "CIU05CUX03 Parque Patricios"
+  ],
+  "CLAUSURA": [
+    "Clausura obra o local"
+  ],
+  "CLI": [
+    "CLI00CUX01 Apertura",
+    "CLI00CUX01 Los próximos días"
+  ],
+  "CO": [
+    "CO04CUX08 Apertura",
+    "CO10CUX02 Apertura post evento"
+  ],
+  "COLA": [
+    "Cola de Atención: Adultos Mayores > Agentes Humanos"
+  ],
+  "COLOR": [
+    "Color preferido"
+  ],
+  "COMIDA": [
+    "Comida"
+  ],
+  "COMUNA": [
+    "Comuna Encontrada | Buscar comunas"
+  ],
+  "CONSULTA": [
+    "Consulta de Expedientes Electrónicos *Apertura > Requisitos *Response",
+    "Consulta de Expedientes Electrónicos *Apertura"
+  ],
+  "CONTENTO": [
+    "Contento"
+  ],
+  "CONTINGENCIA": [
+    "Contingencia - Festividades",
+    "Contingencia - ABRIL 2025"
+  ],
+  "COPIA": [
+    "Copia Digital de Expediente o Documento *Apertura",
+    "Copia Digital de Expediente o Documento  *Apertura > Requisitos *Response"
+  ],
+  "CORONAVIRUS": [
+    "Coronavirus y gente de más de 70 (Apertura)  > Hacer las compras * Apertura"
+  ],
+  "COSTOS": [
+    "Costos del trámite | Disolución de Unión Civil / Convivencial"
+  ],
+  "COY": [
+    "COY08CUX01 Apertura",
+    "COY08CUX01 Plan hidráulico"
+  ],
+  "COYUNTURA": [
+    "Coyuntura Cierre de estación Línea D (desde 02/03): Tribunales ",
+    "Coyuntura Reapertura estación Uruguay"
+  ],
+  "CU": [
+    "CU13CUX01 Apertura",
+    "CU08CUX06 Atardeceres"
+  ],
+  "CUL": [
+    "CUL02CUX03 Iglesias y templos Caballito",
+    "CUL01CUX03 Apertura"
+  ],
+  "CXF": [
+    "CXF01CUX02 P1 Estáticos",
+    "CXF01CUX02 Muy conforme Estáticos"
+  ],
+  "D": [
+    "Dónde lo hago | Identificación Tardía",
+    "Dónde hacerlo | Certificación de firmas"
+  ],
+  "DALE": [
+    "Dale/OK"
+  ],
+  "DDHH": [
+    "DDHH03CUX07 Apertura",
+    "DDHH03CUX08 Apertura"
+  ],
+  "DE": [
+    "DE02CUX01 Apertura",
+    "DE04CUX01 Otras actividades"
+  ],
+  "DEC": [
+    "DEC02CUX02 Apertura",
+    "DEC05CUX01 Cursos"
+  ],
+  "DEFICIENCIAS": [
+    "Deficiencias en establecimientos educativos privados",
+    "Deficiencias en la gestión"
+  ],
+  "DERIVACI": [
+    "Derivación Becas Alimentarias - ⚠️ Auxiliar no atiende",
+    "Derivación Becas Alimentarias - Espera 2 | Sin Disponibilidad"
+  ],
+  "DERIVACION": [
+    "Derivacion especialista"
+  ],
+  "DESAMBIGUADOR": [
+    "Desambiguador deudas"
+  ],
+  "DH": [
+    "DH05CAT01 Usuario no responde pregunta",
+    "DH01CUX01 Hablar con alguien"
+  ],
+  "DIRECCI": [
+    "Dirección ya denunciada | Baches"
+  ],
+  "DISAMBIGUATION": [
+    "Disambiguation Intent"
+  ],
+  "DNI": [
+    "DNI y OCR Scan"
+  ],
+  "DONDE": [
+    "Donde vive"
+  ],
+  "DORM": [
+    "Dormís"
+  ],
+  "EASTER": [
+    "Easter egg River",
+    "Easter egg Boca"
+  ],
+  "ED": [
+    "ED00CUX01 Capacitaciones",
+    "ED00CUX01 Soy docente"
+  ],
+  "EDU": [
+    "EDU04CUX22 Jardines de infantes",
+    "EDU04CUX21 Presencial"
+  ],
+  "EL": [
+    "El usuario ha enviado una ubicación"
+  ],
+  "ELIMINAR": [
+    "Eliminar"
+  ],
+  "EM": [
+    "EM02CUX01 Busco trabajo",
+    "EM03CUX01 Apertura"
+  ],
+  "EMPEZAR": [
+    "Empezar denuncia"
+  ],
+  "EN": [
+    "En horario de atención, agente ocupado AGIP | No esperar",
+    "En horario de atención, agente ocupado AGIP"
+  ],
+  "ENCUESTA": [
+    "Encuesta"
+  ],
+  "ENVIO": [
+    "Envio solicitud fallida"
+  ],
+  "EP": [
+    "EP01CUX01 Puntos de recepción",
+    "EP03CUX01  Apertura"
+  ],
+  "ERROR": [
+    "Error Permitido Estacionar",
+    "Error general acciones de código"
+  ],
+  "ERRORES": [
+    "Errores Orquestador PI"
+  ],
+  "ESTADO": [
+    "Estado subte"
+  ],
+  "FEEDBACK": [
+    "Feedback a humano - Unificado - No resolvió",
+    "Feedback a humano - Unificado - Cierre"
+  ],
+  "FILTRO": [
+    "Filtro de segurización"
+  ],
+  "FIN": [
+    "Fin | Si no atiende el agente | AGIP"
+  ],
+  "FINAL": [
+    "Final | Búsqueda de Farmacias"
+  ],
+  "FLOW": [
+    "Flow fulfilled of \"Primera vez\"",
+    "Flow fulfilled of \"Wsp\""
+  ],
+  "FORMS": [
+    "Forms"
+  ],
+  "FUERA": [
+    "Fuera de horario de atención AGIP"
+  ],
+  "FULFILLED": [
+    "fulfilled of Condición",
+    "fulfilled of Otro Tramite"
+  ],
+  "GA": [
+    "GA01CUX01 Patios",
+    "GA01CUX01 Apertura corta"
+  ],
+  "GE": [
+    "GE01CUX02 Apertura",
+    "GE01CAT01 Vuelta de derivación"
+  ],
+  "HABLAR": [
+    "Hablar con operador",
+    "Hablar con una persona derivado a WhatsApp"
+  ],
+  "HACER": [
+    "Hacer una consulta - Trámites Rúbrica"
+  ],
+  "HISOPADO": [
+    "Hisopado * Apertura WEB",
+    "Hisopado * Apertura"
+  ],
+  "IGNORAR": [
+    "Ignorar"
+  ],
+  "IM": [
+    "Imágenes"
+  ],
+  "IMAGENES": [
+    "Imagenes"
+  ],
+  "IN": [
+    "IN01CUX02 - Scoring Apertura",
+    "IN01CUX01 Cómo pagar legajos"
+  ],
+  "INACTIVIDAD": [
+    "Inactividad  del usuario: limpiar datos de sesión",
+    "Inactividad del usuario: Turismo MSFT"
+  ],
+  "INFRACCI": [
+    "Infracción - Licencia o Vehículo Retenido"
+  ],
+  "INFRACCIONES": [
+    "Infracciones - Sin Infracciones",
+    "Infracciones (Apertura) > Consulta (Apertura de flow) > [Por DNI * Process flow] o [Por Patente * Process flow] > Sin infracciones (Response flow) > Libre deuda [sin infracciones] * Response flow"
+  ],
+  "INICIO": [
+    "Inicio de derivación a agente de AGIP",
+    "Inicio y seguimiento de expedientes y actuaciones"
+  ],
+  "INN": [
+    "INN08CUX01 Apertura sin suscripción DEMO",
+    "INN08CUX01 Apertura por webchat DEMO"
+  ],
+  "INSCRIPCI": [
+    "Inscripción de divorcio en acta de matrimonio (Apertura) > Cómo hacerlo digital * Response",
+    "Inscripción de divorcio en acta de matrimonio *Apertura"
+  ],
+  "INSTANCIA": [
+    "Instancia 1 | No entendidos",
+    "Instancia 2 | No entendidos"
+  ],
+  "INSULTOS": [
+    "Insultos"
+  ],
+  "INVOCAR": [
+    "Invocar servicio de infracciones",
+    "Invocar servicio de búsqueda de permitido estacionar"
+  ],
+  "JU": [
+    "JU01CUX01 Apertura",
+    "JU02CUX01 Apertura"
+  ],
+  "LEVANTAMIENTO": [
+    "Levantamiento de clausura ascensor"
+  ],
+  "LIC": [
+    "LIC00CUX00 Validaciones",
+    "LIC00CUX01 Pago electrónico"
+  ],
+  "LICENCIA": [
+    "Licencia prorroga  > Consultar"
+  ],
+  "LICENCIAS": [
+    "Licencias Boti"
+  ],
+  "LIMPIAR": [
+    "limpiar variables",
+    "limpiar vars TEST"
+  ],
+  "LISTADO": [
+    "Listado de infracciones > Audiencia Online"
+  ],
+  "LLAM": [
+    "Llamá gratis al 144"
+  ],
+  "LLAMADO": [
+    "Llamado al orquestador - PI"
+  ],
+  "LUCHO": [
+    "Lucho Test Segmento"
+  ],
+  "M": [
+    "Más información | Certificado de residencia precaria ",
+    "Más temas post Menú 2.0"
+  ],
+  "MA": [
+    "MA01CUX01 Atención veterinaria",
+    "MA01CUX01 Apertura corta"
+  ],
+  "MAIN": [
+    "Main"
+  ],
+  "MANTENIMIENTO": [
+    "Mantenimiento servicios"
+  ],
+  "MAS": [
+    "Mas info 2",
+    "Mas info"
+  ],
+  "MEN": [
+    "Menú show buttons",
+    "Menú 0 | Clima"
+  ],
+  "MENSAJE": [
+    "Mensaje Otra Dirección | Permitido Estacionar",
+    "Mensaje por defecto"
+  ],
+  "MENU": [
+    "MENU PRINCIPAL 2.0",
+    "Menu opciones Nuevo modelo IA reintento"
+  ],
+  "MIBA": [
+    "miBA - Login exitoso",
+    "MiBA01CUX02 Blanqueo de cuenta"
+  ],
+  "MITRE": [
+    "Mitre -Viaductos-"
+  ],
+  "MO": [
+    "MO04CUX01 Dónde se hace",
+    "MO08CUX03 Contactarme con AUSA"
+  ],
+  "MOSTRAR": [
+    "Mostrar Resultados | Ecobici",
+    "Mostrar más Resultados | Ecobici"
+  ],
+  "MOVE": [
+    "Move"
+  ],
+  "N": [
+    "Número de Documento Inválido | Estado de Trámites"
+  ],
+  "NADA": [
+    "Nada más"
+  ],
+  "NI": [
+    "NI01CUX01 Superapertura Boticlásicos",
+    "NI02CUX01 Otros planes"
+  ],
+  "NO": [
+    "No entendió letra no existente en WA",
+    "No Encontró Ubicación | Sigeci Validacion Indentidad"
+  ],
+  "NOTIFICACI": [
+    "Notificación digital"
+  ],
+  "NOVIAZGO": [
+    "Noviazgo"
+  ],
+  "NUEVO": [
+    "Nuevo ambiente Uli fechas"
+  ],
+  "O": [
+    "o01push02_cinerecoleta_v2"
+  ],
+  "OB": [
+    "OB05CUX02 Permisos de obra",
+    "OB05CUX02 Aviso de obra"
+  ],
+  "OBOARDING": [
+    "Oboarding Cumple Boti"
+  ],
+  "ONBOARDING": [
+    "Onboarding Principal",
+    "Onboarding Agendame soy Boti"
+  ],
+  "OPCI": [
+    "Opción 1"
+  ],
+  "ORQUESTADOR": [
+    "Orquestador Agente Trámites",
+    "Orquestador de IA"
+  ],
+  "OTROS": [
+    "Otros temas | Viene de la WEB"
+  ],
+  "PAGINADO": [
+    "Paginado | Estado de Trámites",
+    "Paginado | Búsqueda de Farmacias"
+  ],
+  "PARTIDAS": [
+    "Partidas extranjeras - Casados y divorciados en el exterior"
+  ],
+  "PASAPORTE": [
+    "Pasaporte Covid | Revisar datos | Persistir info",
+    "Pasaporte Sanitario * Apertura > Código QR"
+  ],
+  "PC": [
+    "PC03CUX01 Apertura",
+    "PC03CUX01 Más información"
+  ],
+  "PEDIDO": [
+    "Pedido de datos"
+  ],
+  "PEDIR": [
+    "Pedir datos para derivar a agente de AGIP | Nombre"
+  ],
+  "PERMISO": [
+    "Permiso de espectáculos musicales en vivo"
+  ],
+  "PERMITIDO": [
+    "Permitido estacionar por ubicación actual",
+    "Permitido estacionar (Apertura) > En la calle (Ap de flow) > Reglamentación V2"
+  ],
+  "PIAW": [
+    "PiaW Falla en el servicio de audio"
+  ],
+  "PREGUNTA": [
+    "Pregunta por Dominio - Error en Dominio 1",
+    "Pregunta por DNI - Error en DNI 2"
+  ],
+  "PREINSCRIPCIONES": [
+    "Preinscripciones (Apertura de flow) > Consultar estado (Ap de flow) > Vacante asignada * Response flow",
+    "Preinscripciones (Apertura) > Consultar estado  * Ap de flow"
+  ],
+  "PRIMERA": [
+    "primera_autenticacion"
+  ],
+  "PROBLEMA": [
+    "Problema al ejecutar acciones de código"
+  ],
+  "PRUEBA": [
+    "Prueba DGCIUD",
+    "prueba_bax_imagen"
+  ],
+  "PUEDE": [
+    "Puede estacionar CTA"
+  ],
+  "PUSH": [
+    "PUSH00CUX01 Acepta desuscribirse",
+    "PUSH00CUX01 Desuscripción"
+  ],
+  "QU": [
+    "Qué necesito | Certificado de residencia precaria ",
+    "Qué necesito - Casados y divorciados en el exterior"
+  ],
+  "RC": [
+    "RC01CUX06 Al exterior",
+    "RC01CUX01 Apertura"
+  ],
+  "REALIZAR": [
+    "Realizar búsqueda de Código Postal por ubicación desde variable auxiliar",
+    "Realizar búsqueda de Código Postal por domicilio"
+  ],
+  "RECOLECCI": [
+    "Recolección de basura"
+  ],
+  "RECONOCER": [
+    "Reconocer OK"
+  ],
+  "REGEX": [
+    "Regex de cross selling Orquestador de IA"
+  ],
+  "REGISTRO": [
+    "Registro de artistas callejeros (Apertura) > Cómo me inscribo * Response",
+    "Registro de artistas callejeros (Apertura)"
+  ],
+  "RENDIR": [
+    "Rendir subsidio 690"
+  ],
+  "REQUISITOS": [
+    "Requisitos | Disolución de Unión Civil / Convivencial "
+  ],
+  "RESOLVER": [
+    "Resolver Ubicación Domicilio | Baches",
+    "Resolver Ubicación Domicilio | Fachada"
+  ],
+  "RESPUESTA": [
+    "Respuesta de contexto"
+  ],
+  "RESPUESTAS": [
+    "Respuestas TXT Gen",
+    "Respuestas generales a todos los canales"
+  ],
+  "RESULTADO": [
+    "Resultado hisopado positivo",
+    "Resultado hisopado no encontrado"
+  ],
+  "SA": [
+    "SA01CUX06  Apertura corta",
+    "SA10CUX01 Especializados"
+  ],
+  "SAC": [
+    "SAC05CUX01 En horario disponible"
+  ],
+  "SALIR": [
+    "Salir de la experiencia"
+  ],
+  "SALUD": [
+    "Salud"
+  ],
+  "SALUDO": [
+    "Saludo_test"
+  ],
+  "SAN": [
+    "San Martín -Viaductos-"
+  ],
+  "SE": [
+    "SE01CUX06 Foto del hecho",
+    "SE02CUX02 Apertura"
+  ],
+  "SEGUNDA": [
+    "Segunda version"
+  ],
+  "SERVICIOS": [
+    "Servicios sociales"
+  ],
+  "SI": [
+    "Si no está empadronado/a - SIGEHO",
+    "Si no atiende nadie | AGIP"
+  ],
+  "SIG": [
+    "sig07push09"
+  ],
+  "SIGECI": [
+    "sigeci_confirmacion_04",
+    "sigeci_recordatorio_01"
+  ],
+  "SIGEHOS": [
+    "SIGEHOS > ⏳ Espero",
+    "SIGEHOS > ⏳ 2do TO - Sin disponiblidad."
+  ],
+  "SIN": [
+    "Sin turnos | sigeci",
+    "Sin agentes disponibles"
+  ],
+  "SITUACI": [
+    "Situación de calle"
+  ],
+  "SOLICITUD": [
+    "Solicitud exitosa"
+  ],
+  "SUA": [
+    "SUA00CUX01 - Buscar solicitud por documento ",
+    "SUA01CUX02 Muebles y otros"
+  ],
+  "SUACI": [
+    "SUACI_AutosAbandonadosReforzar",
+    "SUACI_MostrarMasDatosDeReclamo"
+  ],
+  "SUGGESTION": [
+    "SUGGESTION_RULES flow 4/11/2022, 13:19:15"
+  ],
+  "SUSCRIBIR": [
+    "Suscribir | Clima"
+  ],
+  "TAGEAR": [
+    "Tagear IA On",
+    "Tagear UsuarioPrueba"
+  ],
+  "TELEPASE": [
+    "TelePase: Mi saldo"
+  ],
+  "TERMINAR": [
+    "Terminar atención humana silenciosamente",
+    "Terminar atención humana 147/AGIP/107"
+  ],
+  "TEST": [
+    "Test pia_whisper",
+    "Test IABA"
+  ],
+  "TESTPUSH": [
+    "testpush_planes2",
+    "testpush_planes"
+  ],
+  "TR": [
+    "TR00CUX01 Apertura",
+    "TR00CUX02 - Consultar estado trámites"
+  ],
+  "TRA": [
+    "TRA04CUX17 Apertura ",
+    "TRA04CUX17 Apertura corta"
+  ],
+  "TRO": [
+    "TRO4CUX32  Subintent errores "
+  ],
+  "TU": [
+    "TU04CUX01 Preapertura",
+    "TU01CUX01 Apertura"
+  ],
+  "TUR": [
+    "TUR00CUX02 Mensaje inicial - Turnos",
+    "TUR01CUX12 Pedir tipo de documento"
+  ],
+  "UBICACI": [
+    "Ubicación",
+    "Ubicación no encontrada | Ecobici"
+  ],
+  "USIG": [
+    "USIG - Preguntar calle y dirección (sin send location)",
+    "USIG - Confirma dirección"
+  ],
+  "USUARIO": [
+    "Usuario asignado a agente"
+  ],
+  "V": [
+    "Vía pública: Denuncia de irregularidades",
+    "Vía pública: Pago de daños ocasionados"
+  ],
+  "VALIDACI": [
+    "Validación salida flujo de espera | AGIP",
+    "Validación Audios - Falla en el servicio"
+  ],
+  "VALIDAR": [
+    "Validar DNI Frente Infracciones"
+  ],
+  "VER": [
+    "Ver otra dirección de permitido estacionar",
+    "Ver más | Información sumaria testimonial"
+  ],
+  "VI": [
+    "VI01CUX01 Apertura",
+    "VI01CUX01 Escriturar vivienda"
+  ],
+  "VIADUCTOS": [
+    "Viaductos"
+  ],
+  "VOLVER": [
+    "Volver a consultar Código Postal"
+  ],
+  "VOY": [
+    "Voy a esperar el agente disponible AGIP/147",
+    "Voy a esperar el agente disponible Infracciones"
+  ],
+  "VUELTA": [
+    "Vuelta LLM Licencias - GCBA"
+  ],
+  "WEBCHAT": [
+    "Webchat Identificar Customer"
+  ],
+  "X": [
+    "X. Buscaba otra cosa"
+  ]
+}
