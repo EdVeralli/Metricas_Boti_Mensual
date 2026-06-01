@@ -32,8 +32,36 @@ import os
 import re
 import csv
 import glob
+import sys
+import time
+from contextlib import contextmanager
 import openpyxl
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+# ==================== HELPERS DE LOGGING (verbose) ====================
+# Forzar flush en cada print porque Windows bufferea la salida y los pasos
+# largos parecen colgados. Tambien agregar timestamp para visibilidad.
+
+def log(msg=""):
+    '''Print con timestamp y flush inmediato (clave en consolas Windows).'''
+    if msg:
+        print("[{:%H:%M:%S}] {}".format(datetime.now(), msg), flush=True)
+    else:
+        print("", flush=True)
+
+@contextmanager
+def step(nombre):
+    '''
+    Context manager que imprime inicio/fin de un paso pesado con tiempo
+    transcurrido. Asi el usuario sabe si esta avanzando o se trabo.
+    '''
+    t0 = time.time()
+    log(">>> INICIO: {}".format(nombre))
+    try:
+        yield
+    finally:
+        elapsed = time.time() - t0
+        log("<<< FIN:    {} ({:.1f}s)".format(nombre, elapsed))
 
 # ==================== CONFIGURACION ====================
 CONFIG = {
@@ -198,6 +226,7 @@ RULENAMES_REPORTAR_Y_EXCLUIR = [
 RULENAMES_PRESERVAR = [
     'TUR00CUX02 Mensaje inicial - Turnos',  # mapea a 'Turnos SAP' en NOMBRES_AMIGABLES
     'SA06CUX02 Apertura',                   # mapea a 'Mis profesionales' en NOMBRES_AMIGABLES
+
 ]
 
 # ==================== DESCRIPCIONES AUTOMATICAS DESDE TSV ====================
@@ -553,12 +582,13 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
 
     # 2. CAPA 1: Excluir por patrones dinámicos
     if APLICAR_EXCLUSIONES:
-        print("")
-        print("    [INFO] === CAPA 1: Filtro por patrones dinámicos (CONTAINS) ===")
-        print("    [INFO] Patrones configurados: {}".format(len(PATRONES_EXCLUIR)))
-        df_filtrado, excluidos_capa1, detalle_patrones = filtrar_por_patrones(df_filtrado, rulename_col)
-        print("    [INFO] Registros excluidos por patrones: {:,}".format(excluidos_capa1))
-        print("    [INFO] Registros restantes: {:,}".format(len(df_filtrado)))
+        log("")
+        log("    === CAPA 1: Filtro por patrones dinámicos (CONTAINS) ===")
+        log("    Patrones configurados: {}".format(len(PATRONES_EXCLUIR)))
+        with step("    CAPA 1 - aplicando {} patrones".format(len(PATRONES_EXCLUIR))):
+            df_filtrado, excluidos_capa1, detalle_patrones = filtrar_por_patrones(df_filtrado, rulename_col)
+        log("    Registros excluidos por patrones: {:,}".format(excluidos_capa1))
+        log("    Registros restantes: {:,}".format(len(df_filtrado)))
 
         # Mostrar top 10 patrones que más excluyeron
         if detalle_patrones:
@@ -568,12 +598,13 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
                 print("           '{}': {:,} registros".format(patron, count))
 
         # 3. CAPA 2: Excluir por lista fija manual
-        print("")
-        print("    [INFO] === CAPA 2: Filtro por lista fija manual ===")
-        print("    [INFO] Items en lista manual: {}".format(len(CONTENIDOS_EXCLUIR_MANUAL)))
-        df_filtrado, excluidos_capa2 = filtrar_por_lista_manual(df_filtrado, rulename_col)
-        print("    [INFO] Registros excluidos por lista manual: {:,}".format(excluidos_capa2))
-        print("    [INFO] Registros restantes: {:,}".format(len(df_filtrado)))
+        log("")
+        log("    === CAPA 2: Filtro por lista fija manual ===")
+        log("    Items en lista manual: {}".format(len(CONTENIDOS_EXCLUIR_MANUAL)))
+        with step("    CAPA 2 - aplicando lista manual"):
+            df_filtrado, excluidos_capa2 = filtrar_por_lista_manual(df_filtrado, rulename_col)
+        log("    Registros excluidos por lista manual: {:,}".format(excluidos_capa2))
+        log("    Registros restantes: {:,}".format(len(df_filtrado)))
 
         total_excluidos = excluidos_capa1 + excluidos_capa2
         print("")
@@ -592,19 +623,20 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     #    EXCEPCIÓN: los rulenames en RULENAMES_PRESERVAR quedan exentos de la
     #    consolidacion: se preservan TODAS sus filas, asi conservan su volumen total.
     if fecha_col:
-        idx_max = df_filtrado.groupby(['_RulenameUnique', fecha_col])[sesiones_col].idxmax()
-        indices_finales = set(idx_max.tolist())
-        preservados = 0
-        if RULENAMES_PRESERVAR:
-            mask_preservar = df_filtrado[rulename_col].isin(RULENAMES_PRESERVAR)
-            idx_preservar = df_filtrado[mask_preservar].index
-            indices_nuevos = set(idx_preservar.tolist()) - indices_finales
-            preservados = len(indices_nuevos)
-            indices_finales.update(idx_preservar.tolist())
-        df_filtrado = df_filtrado.loc[sorted(indices_finales)].copy()
-        print("    [INFO] Registros tras agrupación por prefijo (max por día): {:,}".format(len(df_filtrado)))
+        with step("    Agrupacion por (prefijo, fecha) - max por dia"):
+            idx_max = df_filtrado.groupby(['_RulenameUnique', fecha_col])[sesiones_col].idxmax()
+            indices_finales = set(idx_max.tolist())
+            preservados = 0
+            if RULENAMES_PRESERVAR:
+                mask_preservar = df_filtrado[rulename_col].isin(RULENAMES_PRESERVAR)
+                idx_preservar = df_filtrado[mask_preservar].index
+                indices_nuevos = set(idx_preservar.tolist()) - indices_finales
+                preservados = len(indices_nuevos)
+                indices_finales.update(idx_preservar.tolist())
+            df_filtrado = df_filtrado.loc[sorted(indices_finales)].copy()
+        log("    Registros tras agrupación por prefijo (max por día): {:,}".format(len(df_filtrado)))
         if preservados > 0:
-            print("    [INFO] {} filas adicionales preservadas (rulenames en RULENAMES_PRESERVAR)".format(preservados))
+            log("    {} filas adicionales preservadas (rulenames en RULENAMES_PRESERVAR)".format(preservados))
 
     # 6. Sumar sesiones por rulename (tras la agrupación por prefijo)
     df_agrupado = df_filtrado.groupby(rulename_col)[sesiones_col].sum().reset_index()
@@ -637,15 +669,23 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
     # 6. Aplicar nombres amigables (cascada: NOMBRES_AMIGABLES manual > descripcion del TSV > rulename original)
     df_agrupado['Nombre Amigable'] = df_agrupado['Rulename'].map(NOMBRES_AMIGABLES)
 
-    # Fallback 1: para los que no estan en NOMBRES_AMIGABLES, intentar lookup por codigo en TSV
-    descripciones_tsv = cargar_descripciones_tsv()
+    # Fallback 1: para los que no estan en NOMBRES_AMIGABLES, intentar lookup por codigo en TSV.
+    # Cuando hay match en el TSV, se muestra el rulename original + " - " + descripcion del TSV
+    # para que en la planilla "Buscador de contenidos" se vea tanto el codigo tecnico como el
+    # nombre familiar derivado del Topic. Ejemplo:
+    #   "SA03CUX01 Apertura - Vacunacion"
+    with step("    Cargando descripciones desde TSV (rules-*.tsv)"):
+        descripciones_tsv = cargar_descripciones_tsv()
     if descripciones_tsv:
         mask_sin_amigable = df_agrupado['Nombre Amigable'].isna()
         if mask_sin_amigable.any():
+            def _resolver_tsv(rulename):
+                desc = aplicar_descripcion_automatica(rulename, descripciones_tsv)
+                if desc:
+                    return "{} - {}".format(rulename, desc)
+                return None
             df_agrupado.loc[mask_sin_amigable, 'Nombre Amigable'] = (
-                df_agrupado.loc[mask_sin_amigable, 'Rulename'].apply(
-                    lambda r: aplicar_descripcion_automatica(r, descripciones_tsv)
-                )
+                df_agrupado.loc[mask_sin_amigable, 'Rulename'].apply(_resolver_tsv)
             )
 
     # Fallback 2: si tampoco hubo match en TSV, usar el rulename original
@@ -978,32 +1018,35 @@ def execute_query_and_save():
     try:
         session = boto3.Session(region_name=CONFIG['region'])
 
-        print("")
-        print("Ejecutando consulta...")
+        log("")
+        log("ATENCION: la query escanea TODA la vista boti_vw_buscador_rulename")
+        log("          (sin filtro de fecha). Puede tardar VARIOS MINUTOS - es normal.")
+        log("          El proceso NO esta colgado; estoy esperando que Athena responda.")
 
-        try:
-            df = wr.athena.read_sql_query(
-                sql=query,
-                database=CONFIG['database'],
-                workgroup=CONFIG['workgroup'],
-                boto3_session=session,
-                ctas_approach=False,
-                unload_approach=False
-            )
-        except Exception as e:
-            if 'workgroup' in str(e).lower():
-                print("[ADVERTENCIA] Intentando sin workgroup...")
+        with step("Query Athena (boti_vw_buscador_rulename)"):
+            try:
                 df = wr.athena.read_sql_query(
                     sql=query,
                     database=CONFIG['database'],
+                    workgroup=CONFIG['workgroup'],
                     boto3_session=session,
                     ctas_approach=False,
                     unload_approach=False
                 )
-            else:
-                raise e
+            except Exception as e:
+                if 'workgroup' in str(e).lower():
+                    log("[ADVERTENCIA] Error con workgroup; reintentando sin workgroup...")
+                    df = wr.athena.read_sql_query(
+                        sql=query,
+                        database=CONFIG['database'],
+                        boto3_session=session,
+                        ctas_approach=False,
+                        unload_approach=False
+                    )
+                else:
+                    raise e
 
-        print("[OK] Consulta ejecutada exitosamente!")
+        log("[OK] Consulta ejecutada - {:,} filas descargadas".format(len(df)))
 
         # Verificar resultados
         if len(df) == 0:
@@ -1027,31 +1070,31 @@ def execute_query_and_save():
         local_path_dashboard = os.path.join(output_folder, filename_dashboard)
 
         # Guardar CSV con datos crudos
-        print("")
-        print("Guardando CSV con datos crudos...")
-        df.to_csv(local_path_csv, index=False, encoding='utf-8-sig')
-        print("    [OK] CSV guardado: {}".format(filename_csv))
+        log("")
+        with step("Guardando CSV crudo ({:,} filas)".format(len(df))):
+            df.to_csv(local_path_csv, index=False, encoding='utf-8-sig')
+        log("    [OK] CSV guardado: {}".format(filename_csv))
 
         # Procesar datos
-        print("")
-        print("Procesando contenidos consultados...")
-        df_contenidos, total_contenidos, df_historico = procesar_contenidos(df, fecha_inicio, fecha_fin)
+        log("")
+        with step("Procesando contenidos (filtrado + agrupacion + TSV)"):
+            df_contenidos, total_contenidos, df_historico = procesar_contenidos(df, fecha_inicio, fecha_fin)
 
         if df_contenidos is None:
-            print("[ERROR] No se pudo procesar los datos")
+            log("[ERROR] No se pudo procesar los datos")
             return None
 
         # Generar Excel detallado (2 hojas)
-        print("")
-        print("Generando Excel detallado...")
-        create_detail_excel(local_path_detalle, df_contenidos, df_historico, descripcion)
+        log("")
+        with step("Generando Excel detallado ({} filas)".format(len(df_contenidos))):
+            create_detail_excel(local_path_detalle, df_contenidos, df_historico, descripcion)
 
         # Generar Dashboard
-        print("")
-        print("Generando Dashboard...")
-        # D11 = Top 10 contenidos formateado como texto multilínea
-        top10_text = format_top10_text(df_contenidos)
-        create_dashboard(local_path_dashboard, top10_text, modo, mes, anio, fecha_inicio, fecha_fin)
+        log("")
+        with step("Generando Dashboard"):
+            # D11 = Top 10 contenidos formateado como texto multilínea
+            top10_text = format_top10_text(df_contenidos)
+            create_dashboard(local_path_dashboard, top10_text, modo, mes, anio, fecha_inicio, fecha_fin)
 
         print("")
         print("=" * 60)
@@ -1086,6 +1129,15 @@ def execute_query_and_save():
 # ==================== EJECUCION PRINCIPAL ====================
 
 if __name__ == "__main__":
+    # Forzar line-buffering en stdout/stderr para que los prints salgan en
+    # tiempo real (sino Windows puede bufferear y parece que el script se trabo)
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+        sys.stderr.reconfigure(line_buffering=True)
+    except AttributeError:
+        # Python < 3.7 - dejar como esta
+        pass
+
     print("")
     print("=" * 60)
     print("  IMPORTANTE: LOGIN AWS REQUERIDO")

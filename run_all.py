@@ -284,16 +284,23 @@ def ejecutar_modulo(modulo, numero, total):
         os.chdir(modulo['carpeta'])
 
         # Ejecutar todos los scripts en orden
+        # IMPORTANTE: NO usar capture_output=True. Si capturamos, el output del
+        # subprocess se acumula en memoria y solo se ve cuando el subproceso
+        # termina. En scripts largos (ej: Contenidos_Consultados con su query
+        # Athena de varios minutos) eso da la sensacion de que se trabo.
+        # Dejamos que stdout/stderr fluyan al terminal del run_all en tiempo
+        # real (PYTHONUNBUFFERED=1 fuerza que Python no buferee la salida).
+        env_hijo = os.environ.copy()
+        env_hijo['PYTHONUNBUFFERED'] = '1'
+
         for idx, script in enumerate(scripts, 1):
             if len(scripts) > 1:
                 print(f"\n  [{idx}/{len(scripts)}] Ejecutando {script}...")
 
             result = subprocess.run(
-                [sys.executable, script],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='replace'
+                [sys.executable, '-u', script],   # -u tambien fuerza unbuffered
+                env=env_hijo
+                # SIN capture_output: la salida fluye al terminal en vivo
             )
 
             if result.returncode != 0:
@@ -302,13 +309,10 @@ def ejecutar_modulo(modulo, numero, total):
                 fin = time.time()
                 duracion = fin - inicio
 
-                print(f"  ❌ Error en {script}")
-                if result.stdout:
-                    print(f"\n  Salida estándar (últimas líneas):")
-                    print(result.stdout[-1000:] if len(result.stdout) > 1000 else result.stdout)
-                if result.stderr:
-                    print(f"\n  Salida de error:")
-                    print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
+                # El output del subprocess ya se vio en pantalla en tiempo real;
+                # aca solo reportamos el fallo.
+                print(f"  ❌ Error en {script} (returncode={result.returncode})")
+                print(f"     Revisa la salida del script arriba para diagnosticar.")
                 return {
                     'nombre': modulo['nombre'],
                     'exitoso': False,
