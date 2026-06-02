@@ -35,6 +35,8 @@ from datetime import datetime
 from calendar import monthrange
 from collections import Counter
 from contextlib import contextmanager
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # NLTK - stopwords en español (puede tardar la primera vez al bajar el pack)
 try:
@@ -509,6 +511,58 @@ def construir_ranking_texto(resultado_categorias):
     lineas = ["{}-{}".format(i + 1, cat) for i, cat in enumerate(df_rank['Tema Último Mes'])]
     return '\n'.join(lineas)
 
+def generar_excel_ranking(filepath, ranking_texto, periodo_label):
+    """
+    Genera un Excel con la fila 'Temas mas consultados' en formato template:
+        Col A: 'Temas mas consultados'  (label)
+        Col B: ranking de 10 lineas con wrap_text=True
+    Replica el look del template del tablero.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Temas mas consultados'
+
+    # Estilos
+    label_font = Font(name='Arial', size=11, bold=True)
+    value_font = Font(name='Arial', size=10)
+    header_font = Font(name='Arial', size=11, bold=True)
+    header_fill = PatternFill(start_color="D5E8D4", end_color="D5E8D4", fill_type="solid")
+    thin = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    align_label = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_value = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    # Header
+    ws['A1'] = 'Indicador'
+    ws['B1'] = periodo_label
+    for c in ('A1', 'B1'):
+        ws[c].font = header_font
+        ws[c].fill = header_fill
+        ws[c].alignment = Alignment(horizontal='center', vertical='center')
+        ws[c].border = thin
+
+    # Fila del ranking
+    ws['A2'] = 'Temas más consultados'
+    ws['A2'].font = label_font
+    ws['A2'].alignment = align_label
+    ws['A2'].border = thin
+
+    # El valor: texto multilinea (con \n) y wrap_text para que se vean los saltos
+    ws['B2'] = ranking_texto
+    ws['B2'].font = value_font
+    ws['B2'].alignment = align_value
+    ws['B2'].border = thin
+
+    # Ajustar tamaños para que se vea como el screenshot del usuario
+    ws.column_dimensions['A'].width = 32
+    ws.column_dimensions['B'].width = 50
+    # Alto de la fila 2: 10 lineas x ~15 puntos
+    ws.row_dimensions[2].height = 175
+
+    wb.save(filepath)
+
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -576,7 +630,8 @@ def main():
     path_cmp = os.path.join(out_dir, "comparison_mensajes_{}.xlsx".format(sufijo))
     path_reporte = os.path.join(out_dir, "reporte_mensajes_{}.xlsx".format(sufijo))
     path_topvar = os.path.join(out_dir, "top_variaciones_{}.xlsx".format(sufijo))
-    path_ranking_txt = os.path.join(out_dir, "ranking_temas_{}.txt".format(sufijo))
+    path_ranking_txt = os.path.join(out_dir, "ranking_temas_consultados_{}.txt".format(sufijo))
+    path_ranking_xlsx = os.path.join(out_dir, "ranking_temas_consultados_{}.xlsx".format(sufijo))
 
     # 8) CSV crudo limpio
     log("")
@@ -630,11 +685,17 @@ def main():
                 df_topvar.to_excel(writer, sheet_name='TopVariaciones', index=False)
     log("    [OK] {}".format(path_topvar))
 
-    # 14) Ranking texto para el tablero
-    with step("Ranking texto para el TABLERO"):
+    # 14) Ranking texto y Excel para el tablero
+    with step("Ranking texto + Excel para el TABLERO"):
         ranking_texto = construir_ranking_texto(resultado)
         with open(path_ranking_txt, 'w', encoding='utf-8') as f:
             f.write(ranking_texto)
+        # Periodo label estilo template: 'mar-26'
+        periodo_label = "{}-{}".format(ABREV_MESES[mes], str(anio)[-2:])
+        generar_excel_ranking(path_ranking_xlsx, ranking_texto, periodo_label)
+
+    # (La actualizacion automatica de la planilla maestra fue descartada.
+    #  El ranking queda solo en output/ranking_temas_<mes>_<anio>.xlsx)
 
     log("")
     log("=" * 60)
@@ -645,13 +706,14 @@ def main():
     log("=" * 60)
     log("")
     log("Texto guardado en: {}".format(path_ranking_txt))
-    log("Pegalo en la celda 'Temas mas consultados' del tablero.")
+    log("Excel guardado en: {}".format(path_ranking_xlsx))
+    log("Pegalo / copialo en la celda 'Temas mas consultados' del tablero.")
 
     log("")
     log("=" * 60)
     log("ARCHIVOS GENERADOS en {}/".format(out_dir))
     log("=" * 60)
-    for p in [path_csv, path_top200, path_cmp, path_reporte, path_topvar, path_ranking_txt]:
+    for p in [path_csv, path_top200, path_cmp, path_reporte, path_topvar, path_ranking_txt, path_ranking_xlsx]:
         log("    [OK] {}".format(os.path.basename(p)))
 
     log("")
