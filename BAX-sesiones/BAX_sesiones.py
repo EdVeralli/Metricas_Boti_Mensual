@@ -13,7 +13,7 @@ MODOS SOPORTADOS:
   2. RANGO PERSONALIZADO: Especificar FECHA_INICIO y FECHA_FIN
 
 Workgroup: Production-caba-piba-athena-boti-group
-Rol: PIBAConsumeBoti
+Rol: PIBADataScientist
 
 aws-azure-login --configure --profile default
 aws-azure-login --profile default --mode=gui
@@ -367,10 +367,10 @@ def check_aws_credentials():
         print("[OK] Credenciales AWS validas")
         print("    ARN: {}".format(user_arn))
 
-        if 'PIBAConsumeBoti' not in user_arn:
+        if 'PIBADataScientist' not in user_arn:
             print("")
             print("[ADVERTENCIA] No estas usando el rol correcto")
-            print("    Se requiere: PIBAConsumeBoti")
+            print("    Se requiere: PIBADataScientist")
             if '/' in user_arn:
                 current_role = user_arn.split('/')[-2]
             else:
@@ -379,7 +379,7 @@ def check_aws_credentials():
             print("")
             print("SOLUCION:")
             print("    1. Ejecuta: aws-azure-login --profile default --mode=gui")
-            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBAConsumeBoti")
+            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBADataScientist")
             print("    3. Vuelve a ejecutar este script")
             print("")
             return False
@@ -598,7 +598,7 @@ if __name__ == "__main__":
     print("SCRIPT: SESIONES BAX (webchat - BAX - App) - QUERY ATHENA")
     print("=" * 60)
     print("Lee configuracion desde: {}".format(CONFIG['config_file']))
-    print("Rol requerido: PIBAConsumeBoti")
+    print("Rol requerido: PIBADataScientist")
     print("Tabla: boti_session_metrics_2")
     print("Filtro: channel_id LIKE '%webchat%' AND channel_name LIKE '%BAX - App%'")
     print("Filtro fecha: PARTICIONES year/month/day (igual que Excel original)")

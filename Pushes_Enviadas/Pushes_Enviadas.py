@@ -17,7 +17,7 @@ MODOS SOPORTADOS:
 
 IMPORTANTE: El Excel SIEMPRE se crea NUEVO desde cero con estructura de Dashboard
 Workgroup: Production-caba-piba-athena-boti-group
-Rol: PIBAConsumeBoti
+Rol: PIBADataScientist
 """
 import boto3
 import awswrangler as wr
@@ -324,10 +324,10 @@ def check_aws_credentials():
         print("    ARN: {}".format(user_arn))
         
         # Verificar que sea el rol correcto
-        if 'PIBAConsumeBoti' not in user_arn:
+        if 'PIBADataScientist' not in user_arn:
             print("")
             print("[ADVERTENCIA] No estas usando el rol correcto")
-            print("    Se requiere: PIBAConsumeBoti")
+            print("    Se requiere: PIBADataScientist")
             if '/' in user_arn:
                 current_role = user_arn.split('/')[-2]
             else:
@@ -336,7 +336,7 @@ def check_aws_credentials():
             print("")
             print("SOLUCION:")
             print("    1. Ejecuta: aws-azure-login --profile default --mode=gui")
-            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBAConsumeBoti")
+            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBADataScientist")
             print("    3. Vuelve a ejecutar este script")
             print("")
             return False
@@ -527,7 +527,7 @@ if __name__ == "__main__":
     print("SCRIPT: MENSAJES PUSHES ENVIADOS - QUERY ATHENA V2")
     print("=" * 60)
     print("Lee configuracion desde: {}".format(CONFIG['config_file']))
-    print("Rol requerido: PIBAConsumeBoti")
+    print("Rol requerido: PIBADataScientist")
     print("Salida: CSV + Excel Dashboard NUEVO (resultado en celda D6)")
     print("Query: JOIN entre boti_event_metrics_2 y boti_message_metrics_2")
     print("")

@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 ### Permisos AWS
 
-- **Rol requerido:** `PIBAConsumeBoti`
+- **Rol requerido:** `PIBADataScientist`
 - **Workgroup:** `Production-caba-piba-athena-boti-group`
 - **Base de datos:** `caba-piba-consume-zone-db`
 - **Región:** `us-east-1`
@@ -94,7 +94,7 @@ FECHA_FIN=2025-10-15
 aws-azure-login --profile default --mode=gui
 ```
 
-⚠️ **Importante:** Seleccionar el rol `PIBAConsumeBoti` durante la autenticación.
+⚠️ **Importante:** Seleccionar el rol `PIBADataScientist` durante la autenticación.
 
 ### 2. Configurar el período
 
@@ -224,7 +224,7 @@ aws-azure-login --profile default --mode=gui
 [ADVERTENCIA] No estas usando el rol correcto
 ```
 
-**Solución:** Verificar que se seleccionó `PIBAConsumeBoti` durante la autenticación y volver a autenticarse.
+**Solución:** Verificar que se seleccionó `PIBADataScientist` durante la autenticación y volver a autenticarse.
 
 ### Error: Formato de fecha inválido
 
@@ -302,7 +302,7 @@ Pushes_Enviadas/
 - Las credenciales AWS se manejan mediante `aws-azure-login`
 - No se almacenan credenciales en el código
 - Se requiere autenticación mediante Azure AD
-- Solo usuarios con rol `PIBAConsumeBoti` pueden ejecutar el script
+- Solo usuarios con rol `PIBADataScientist` pueden ejecutar el script
 
 ## Workflow Típico
 
@@ -331,7 +331,7 @@ El script valida automáticamente:
 - ✅ FECHA_INICIO ≤ FECHA_FIN
 - ✅ Existencia de configuración válida
 - ✅ Credenciales AWS válidas
-- ✅ Rol correcto (PIBAConsumeBoti)
+- ✅ Rol correcto (PIBADataScientist)
 
 ## Contribuciones
 
@@ -378,7 +378,7 @@ Para problemas o consultas:
 - **Región:** `us-east-1`
 - **Workgroup:** `Production-caba-piba-athena-boti-group`
 - **Database:** `caba-piba-consume-zone-db`
-- **Rol requerido:** `PIBAConsumeBoti`
+- **Rol requerido:** `PIBADataScientist`
 
 ### Dependencias
 

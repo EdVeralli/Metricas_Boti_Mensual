@@ -17,7 +17,7 @@ MODOS SOPORTADOS:
 
 IMPORTANTE: El Excel SIEMPRE se crea NUEVO desde cero con estructura de Dashboard
 Workgroup: Production-caba-piba-athena-boti-group
-Rol: PIBAConsumeBoti
+Rol: PIBADataScientist
 """
 import boto3
 import awswrangler as wr
@@ -302,14 +302,14 @@ def check_aws_credentials():
         print("[OK] Credenciales AWS validas")
         print("    ARN: {}".format(user_arn))
         
-        if 'PIBAConsumeBoti' not in user_arn:
+        if 'PIBADataScientist' not in user_arn:
             print("")
             print("[ADVERTENCIA] No estas usando el rol correcto")
-            print("    Se requiere: PIBAConsumeBoti")
+            print("    Se requiere: PIBADataScientist")
             print("")
             print("SOLUCION:")
             print("    1. Ejecuta: aws-azure-login --profile default --mode=gui")
-            print("    2. Selecciona el rol: PIBAConsumeBoti")
+            print("    2. Selecciona el rol: PIBADataScientist")
             print("")
             return False
         
@@ -447,7 +447,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("SCRIPT: USUARIOS Y CONVERSACIONES - QUERY ATHENA")
     print("=" * 60)
-    print("Rol requerido: PIBAConsumeBoti")
+    print("Rol requerido: PIBADataScientist")
     print("Salida: CSV + Excel Dashboard (celdas D2 y D3)")
     print("")
     print("MODOS:")

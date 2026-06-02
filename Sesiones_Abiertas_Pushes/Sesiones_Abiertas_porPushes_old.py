@@ -12,7 +12,7 @@ Guarda resultado en CSV y escribe el resultado en la celda D4 de Excel
 Lee configuracion de fechas desde archivo config_fechas.txt
 IMPORTANTE: El Excel SIEMPRE se crea NUEVO desde cero con estructura de Dashboard
 Workgroup: Production-caba-piba-athena-boti-group
-Rol: PIBAConsumeBoti
+Rol: PIBADataScientist
 """
 import boto3
 import awswrangler as wr
@@ -245,11 +245,11 @@ def check_aws_credentials():
         print("[OK] Credenciales AWS encontradas")
         print("    Usuario: {}".format(user_arn))
         
-        if 'PIBAConsumeBoti' in user_arn:
-            print("[OK] Rol correcto: PIBAConsumeBoti")
+        if 'PIBADataScientist' in user_arn:
+            print("[OK] Rol correcto: PIBADataScientist")
         else:
-            print("[ADVERTENCIA] Rol actual no es PIBAConsumeBoti")
-            print("    Se requiere: PIBAConsumeBoti")
+            print("[ADVERTENCIA] Rol actual no es PIBADataScientist")
+            print("    Se requiere: PIBADataScientist")
             if '/' in user_arn:
                 current_role = user_arn.split('/')[-2]
             else:
@@ -258,7 +258,7 @@ def check_aws_credentials():
             print("")
             print("SOLUCION:")
             print("    1. Ejecuta: aws-azure-login --profile default --mode=gui")
-            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBAConsumeBoti")
+            print("    2. Cuando te autentiques, SELECCIONA el rol: PIBADataScientist")
             print("    3. Vuelve a ejecutar este script")
             print("")
             return False
@@ -460,7 +460,7 @@ if __name__ == "__main__":
     print("SCRIPT: PUSHES ABIERTAS (starting_cause) - QUERY ATHENA")
     print("=" * 60)
     print("Lee configuracion desde: {}".format(CONFIG['config_file']))
-    print("Rol requerido: PIBAConsumeBoti")
+    print("Rol requerido: PIBADataScientist")
     print("Salida: CSV + Excel Dashboard NUEVO (resultado en celda D4)")
     print("=" * 60)
     print("")

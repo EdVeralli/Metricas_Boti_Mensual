@@ -10,7 +10,7 @@ MODOS SOPORTADOS:
 2. RANGO PERSONALIZADO: Especificar FECHA_INICIO y FECHA_FIN
 
 Workgroup: Production-caba-piba-athena-boti-group
-Rol: PIBAConsumeBoti
+Rol: PIBADataScientist
 '''
 import boto3
 import awswrangler as wr
@@ -809,7 +809,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("SCRIPT: FEEDBACK - CSAT (Customer Satisfaction) - QUERY ATHENA")
     print("=" * 60)
-    print("Rol requerido: PIBAConsumeBoti")
+    print("Rol requerido: PIBADataScientist")
     print("Salida: CSV + Excel Detalle + Dashboard Master")
     print("Query: Reglas CXF con conteo de sesiones")
     print("")

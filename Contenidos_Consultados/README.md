@@ -41,7 +41,7 @@ pip install boto3 awswrangler pandas openpyxl
 
 ### Permisos AWS
 
-- **Rol requerido:** `PIBAConsumeBoti`
+- **Rol requerido:** `PIBADataScientist`
 - **Workgroup:** `Production-caba-piba-athena-boti-group`
 - **Base de datos:** `caba-piba-consume-zone-db`
 - **Region:** `us-east-1`
@@ -297,7 +297,7 @@ La vista de Athena cambio de estructura. Verificar las columnas disponibles en e
 - **Workgroup:** `Production-caba-piba-athena-boti-group`
 - **Database:** `caba-piba-consume-zone-db`
 - **Vista:** `boti_vw_buscador_rulename`
-- **Rol requerido:** `PIBAConsumeBoti`
+- **Rol requerido:** `PIBADataScientist`
 
 ### Dependencias
 

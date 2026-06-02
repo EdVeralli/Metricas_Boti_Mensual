@@ -94,7 +94,7 @@ openpyxl>=3.0.0
 
 - **Workgroup:** Production-caba-piba-athena-boti-group
 - **Database:** caba-piba-consume-zone-db
-- **Rol:** PIBAConsumeBoti
+- **Rol:** PIBADataScientist
 
 ---
 
@@ -130,7 +130,7 @@ aws-azure-login --configure --profile default
 Completar con:
 - **Azure Tenant ID:** (proporcionado por IT)
 - **Azure App ID URI:** (proporcionado por IT)
-- **Default Role ARN:** PIBAConsumeBoti
+- **Default Role ARN:** PIBADataScientist
 
 ### 4. Verificar Estructura de Directorios
 

@@ -141,7 +141,7 @@ pip install --upgrade boto3 awswrangler pandas numpy openpyxl selenium requests 
 
 - **Workgroup:** Production-caba-piba-athena-boti-group
 - **Database:** caba-piba-consume-zone-db
-- **Rol:** PIBAConsumeBoti
+- **Rol:** PIBADataScientist
 - **Region:** us-east-1
 
 ---
@@ -172,7 +172,7 @@ aws-azure-login --configure --profile default
 Completar con:
 - **Azure Tenant ID:** (proporcionado por IT)
 - **Azure App ID URI:** (proporcionado por IT)
-- **Default Role ARN:** PIBAConsumeBoti
+- **Default Role ARN:** PIBADataScientist
 
 ---
 
