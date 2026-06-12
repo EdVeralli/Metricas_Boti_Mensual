@@ -1,0 +1,26 @@
+Active;rulename;Topico
+Prendido;SA00CUX01 Superapertura;SAP de Salud
+Prendido;LIC00CUX01 Telefono;Otorgamiento de Licencias Exp unificada
+Prendido;TUR00CUX02 Turnos para salud;Turnos salud
+Prendido;TUR00CUX02 Hospitales y CeSAC;Bifurcador Salud BAX
+Prendido;TUR00CUX02 Mensaje inicial - Turnos;SAP de turnos
+Prendido;TUR00CUX02 Turnos para trámites;Turnos para trámites
+Prendido;TUR00CUX02 Para vehículos;Turnos para vehículos
+Prendido;MO00CUX01 Auto o moto;Trámites Vehículos SAP
+Prendido;MO00CUX01 Estacionar en BA;Estacionar en BA
+Prendido;MO00CUX01 Taxi;BA Taxi
+Prendido;DE00CUX01 Apertura;Deportes SAP
+Prendido;VI00CUX01 Apertura;Viviendas SAP
+Prendido;ED00CUX01 Superapertura educación;Educación SAP
+Prendido;CLI00CUX01 Apertura;Clima SAP
+Prendido;TR00CUX01 Apertura;Trámites SAP
+Prendido;SA06CUX03 Confirmar turno Sí, dale;Confirmación Turnos Salud
+Prendido;Infracciones * Apertura;Infracciones
+Prendido;TUR00CUX02 Turnos para salud;Turnos Salud
+Prendido;MO00CUX01 Auto o moto;Trámites Vehículos SAP
+Prendido;TUR00CUX02 Mensaje inicial - Turnos;Turnos SAP
+Prendido;SA06CUX02 Apertura;Mis profesionales
+Prendido;SA10CUX01 Hospitales;Hospitales
+Prendido;MO05CUX02 Apertura;Licencias
+Prendido;TR00CUX01 Apertura;Trámites SAP
+Prendido;Busca donde está permitido estacionar;Busca donde está permitido estacionar

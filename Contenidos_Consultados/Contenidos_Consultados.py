@@ -186,7 +186,20 @@ NOMBRES_AMIGABLES = {
     'SA10CUX01 Hospitales': 'Hospitales',
     'MO05CUX02 Apertura': 'Licencias',
     'TR00CUX01 Apertura': 'Trámites SAP',
-    'Busca donde está permitido estacionar': 'Buscar donde está permitido estacionar',
+    'Busca donde está permitido estacionar': 'Busca donde está permitido estacionar',
+
+    # Agregados desde Trasco.csv (mapeo oficial rulename -> Topico)
+    'SA00CUX01 Superapertura': 'SAP de Salud',
+    'LIC00CUX01 Telefono': 'Otorgamiento de Licencias Exp unificada',
+    'TUR00CUX02 Hospitales y CeSAC': 'Bifurcador Salud BAX',
+    'TUR00CUX02 Turnos para trámites': 'Turnos para trámites',
+    'TUR00CUX02 Para vehículos': 'Turnos para vehículos',
+    'MO00CUX01 Estacionar en BA': 'Estacionar en BA',
+    'MO00CUX01 Taxi': 'BA Taxi',
+    'DE00CUX01 Apertura': 'Deportes SAP',
+    'VI00CUX01 Apertura': 'Viviendas SAP',
+    'ED00CUX01 Superapertura educación': 'Educación SAP',
+    'CLI00CUX01 Apertura': 'Clima SAP',
 }
 
 # ==================== AGRUPACIÓN ESPECIAL POR PREFIJO ====================
@@ -238,6 +251,10 @@ RULENAMES_PRESERVAR = [
 _PATRON_CODIGO = re.compile(r'^[A-Z]{2,4}\d{2}CUX\d{2}$')
 _PATRON_TOPIC_CODIGO = re.compile(r'\b([A-Z]{2,4}\d{2}CUX\d{2})\b\s*[-:.]*\s*(.+)$')
 _DESCRIPCIONES_TSV_CACHE = None  # se carga lazy en la primera llamada
+_NAME_A_TOPIC_CACHE = None       # cache para el lookup por columna Name (TSV mas reciente gana)
+
+# Disclaimer que se agrega cuando un rulename no tiene nombre amigable en ningun lado.
+DISCLAIMER_FALTANTE = '[NOMBRE AMIGABLE FALTANTE]'
 
 # ==================== FUNCIONES ====================
 
@@ -330,6 +347,87 @@ def aplicar_descripcion_automatica(rulename, descripciones_tsv):
     if not _PATRON_CODIGO.fullmatch(primer_token):
         return None
     return descripciones_tsv.get(primer_token.upper())
+
+def cargar_mapping_name_a_topic():
+    '''
+    Lee TODOS los TSV de reglas (rules-*.tsv) y arma un dict:
+        Name (rulename) -> (Topic, Topic path)
+
+    Empezando por el TSV MAS NUEVO: si un mismo rulename aparece en varios TSV,
+    gana el del archivo mas reciente.
+
+    Cachea en memoria. Encoding latin-1 (export Botmaker).
+    '''
+    global _NAME_A_TOPIC_CACHE
+    if _NAME_A_TOPIC_CACHE is not None:
+        return _NAME_A_TOPIC_CACHE
+
+    mapping = {}
+    # Los TSV vienen ordenados ASC (mas viejos primero). Recorrer en orden DESC
+    # asi el mas nuevo se procesa primero y gana al hacer setdefault.
+    tsv_paths = list(reversed(_find_all_tsvs()))
+    if not tsv_paths:
+        print("    [WARN] No se encontro ningun rules-*.tsv para mapping name->topic")
+        _NAME_A_TOPIC_CACHE = mapping
+        return mapping
+
+    for tsv_path in tsv_paths:
+        try:
+            with open(tsv_path, 'r', encoding='latin-1', newline='') as f:
+                reader = csv.DictReader(f, delimiter='\t')
+                for row in reader:
+                    name = (row.get('Name') or '').strip()
+                    if not name:
+                        continue
+                    # setdefault asegura que el TSV mas nuevo (procesado primero) gane
+                    if name not in mapping:
+                        topic = (row.get('Topic') or '').strip()
+                        topic_path = (row.get('Topic path') or '').strip()
+                        mapping[name] = (topic, topic_path)
+        except Exception as e:
+            print("    [WARN] Error leyendo {} para mapping Name: {}".format(tsv_path, e))
+
+    print("    [INFO] Mapping Name->Topic cargado: {} rulenames unicos".format(len(mapping)))
+    _NAME_A_TOPIC_CACHE = mapping
+    return mapping
+
+def resolver_nombre_amigable_por_name(rulename, mapping_name_a_topic):
+    '''
+    Logica NUEVA: busca el rulename en la columna 'Name' del TSV y arma el nombre
+    amigable a partir de las columnas 'Topic' y 'Topic path'.
+
+    Reglas:
+      - Si el rulename no esta en el mapping  --> None (cae al disclaimer)
+      - Si Topic esta vacio                    --> None (cae al disclaimer)
+      - Si Topic == Topic path                 --> "Topic [rulename]"
+      - Si Topic != Topic path                 --> "Topic" (tal cual)
+
+    Para que coincida con strip (los rulenames pueden tener espacios extra), se
+    intenta primero el match exacto y despues el match con strip.
+    '''
+    if not rulename:
+        return None
+    # Match exacto
+    if rulename in mapping_name_a_topic:
+        topic, topic_path = mapping_name_a_topic[rulename]
+    else:
+        # Match con strip (algunos rulenames tienen espacios al final/inicio)
+        rn_strip = str(rulename).strip()
+        clave_match = None
+        for k in mapping_name_a_topic:
+            if k.strip() == rn_strip:
+                clave_match = k
+                break
+        if clave_match is None:
+            return None
+        topic, topic_path = mapping_name_a_topic[clave_match]
+
+    if not topic:
+        return None
+
+    if topic == topic_path:
+        return "{} [{}]".format(topic, rulename)
+    return topic
 
 def read_date_config(config_file):
     '''
@@ -688,8 +786,34 @@ def procesar_contenidos(df, fecha_inicio, fecha_fin):
                 df_agrupado.loc[mask_sin_amigable, 'Rulename'].apply(_resolver_tsv)
             )
 
-    # Fallback 2: si tampoco hubo match en TSV, usar el rulename original
-    df_agrupado['Nombre Amigable'] = df_agrupado['Nombre Amigable'].fillna(df_agrupado['Rulename'])
+    # Fallback 2: NUEVA logica - lookup por columna 'Name' del TSV.
+    # Si el rulename existe en la columna Name del TSV mas reciente, usar la
+    # columna 'Topic' como nombre amigable.
+    #   - Si Topic == Topic path  ->  "Topic [rulename]"  (Topic es muy generico)
+    #   - Si Topic != Topic path  ->  usar Topic tal cual
+    # Sino, cae al fallback 3 (disclaimer).
+    with step("    Cargando mapping Name->Topic desde TSV"):
+        mapping_name = cargar_mapping_name_a_topic()
+    if mapping_name:
+        mask_sin_amigable = df_agrupado['Nombre Amigable'].isna()
+        if mask_sin_amigable.any():
+            df_agrupado.loc[mask_sin_amigable, 'Nombre Amigable'] = (
+                df_agrupado.loc[mask_sin_amigable, 'Rulename'].apply(
+                    lambda r: resolver_nombre_amigable_por_name(r, mapping_name)
+                )
+            )
+
+    # Fallback 3: disclaimer. Si nada lo resolvio, mostrar rulename + disclaimer
+    # para que sea OBVIO en el reporte que falta agregar el nombre amigable.
+    mask_aun_sin = df_agrupado['Nombre Amigable'].isna()
+    if mask_aun_sin.any():
+        cant_faltantes = int(mask_aun_sin.sum())
+        log("    [WARN] {} rulenames quedaron sin nombre amigable (marcados con disclaimer)".format(cant_faltantes))
+        df_agrupado.loc[mask_aun_sin, 'Nombre Amigable'] = (
+            df_agrupado.loc[mask_aun_sin, 'Rulename'].apply(
+                lambda r: "{} {}".format(r, DISCLAIMER_FALTANTE)
+            )
+        )
 
     # Ordenar descendente
     df_agrupado = df_agrupado.sort_values('Suma de Sesiones', ascending=False).reset_index(drop=True)
