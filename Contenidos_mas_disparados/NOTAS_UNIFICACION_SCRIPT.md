@@ -1,5 +1,10 @@
 # Notas de unificación del script de Contenidos Consultados
 
+> **Nota:** este documento es histórico (abril 2026). El módulo y el script
+> fueron renombrados posteriormente a `Contenidos_mas_disparados`/`Contenidos_mas_disparados.py`.
+> Las menciones a `Contenidos_Consultados.py` que siguen abajo se mantienen
+> tal cual estaban en su momento para preservar la veracidad del registro.
+
 Registro del análisis realizado el **2026-04-23** que terminó con la unificación
 del código en un único script `Contenidos_Consultados.py`.
 

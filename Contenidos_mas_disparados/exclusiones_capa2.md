@@ -1,9 +1,9 @@
-# Exclusiones de Contenidos Consultados
+# Exclusiones de Contenidos mas disparados
 
-Registro completo de todo lo que se excluye del ranking de Contenidos Más Consultados,
+Registro completo de todo lo que se excluye del ranking de Contenidos mas disparados,
 ya sea por patrón dinámico (Capa 1) o por exclusión manual puntual (Capa 2).
 
-Fuente: `Contenidos_Consultados.py`
+Fuente: `Contenidos_mas_disparados.py`
 Última actualización: 2026-03-26
 
 ---

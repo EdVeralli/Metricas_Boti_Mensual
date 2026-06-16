@@ -58,8 +58,8 @@ MODULOS = [
     },
     {
         'nombre': 'Contenidos Consultados',
-        'carpeta': 'Contenidos_Consultados',
-        'script': 'Contenidos_Consultados.py',
+        'carpeta': 'Contenidos_mas_disparados',
+        'script': 'Contenidos_mas_disparados.py',
         'celdas': 'D11',
         'requiere_aws': True
     },
@@ -286,7 +286,7 @@ def ejecutar_modulo(modulo, numero, total):
         # Ejecutar todos los scripts en orden
         # IMPORTANTE: NO usar capture_output=True. Si capturamos, el output del
         # subprocess se acumula en memoria y solo se ve cuando el subproceso
-        # termina. En scripts largos (ej: Contenidos_Consultados con su query
+        # termina. En scripts largos (ej: Contenidos_mas_disparados con su query
         # Athena de varios minutos) eso da la sensacion de que se trabo.
         # Dejamos que stdout/stderr fluyan al terminal del run_all en tiempo
         # real (PYTHONUNBUFFERED=1 fuerza que Python no buferee la salida).

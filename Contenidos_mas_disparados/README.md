@@ -1,6 +1,6 @@
-# Contenidos Consultados
+# Contenidos mas disparados
 
-Script automatizado para generar el reporte de contenidos mas consultados del chatbot Boti del Gobierno de la Ciudad de Buenos Aires (GCBA). Descarga datos de AWS Athena, calcula el ranking completo de contenidos con porcentaje del total, y genera una serie temporal diaria.
+Script automatizado para generar el reporte de contenidos mas disparados del chatbot Boti del Gobierno de la Ciudad de Buenos Aires (GCBA). Descarga datos de AWS Athena, calcula el ranking completo de contenidos con porcentaje del total, y genera una serie temporal diaria.
 
 ## Descripcion
 
@@ -68,7 +68,7 @@ Consulta del 1 al 15 de enero 2026.
 
 ### Exclusiones - Filtrado en 2 Capas
 
-En `Contenidos_Consultados.py`, el filtrado replica la logica del Power BI con 2 capas:
+En `Contenidos_mas_disparados.py`, el filtrado replica la logica del Power BI con 2 capas:
 
 **Capa 1 - Patrones dinamicos (`PATRONES_EXCLUIR`):**
 Se excluye toda rulename que CONTENGA alguno de estos textos (case-insensitive). Ejemplos:
@@ -108,8 +108,8 @@ Editar `config_fechas.txt` en la raiz del proyecto.
 ### 3. Ejecutar el script
 
 ```bash
-cd Contenidos_Consultados
-python Contenidos_Consultados.py
+cd Contenidos_mas_disparados
+python Contenidos_mas_disparados.py
 ```
 
 ## Agrupacion Especial TUR00CUX02
@@ -242,9 +242,9 @@ df['% del Total'] = df['Suma de Sesiones'] / df['Suma de Sesiones'].sum()
 ## Estructura del Proyecto
 
 ```
-Contenidos_Consultados/
+Contenidos_mas_disparados/
 |
-├── Contenidos_Consultados.py              # Script principal (2 capas + nombres amigables + TUR00CUX02)
+├── Contenidos_mas_disparados.py              # Script principal (2 capas + nombres amigables + TUR00CUX02)
 ├── README.md                              # Esta documentacion
 ├── Consultas por dia 1.pbix               # Power BI nuevo (referencia)
 ├── Buscador de Contenidos mas Consultados.pbix  # Power BI viejo (referencia)
@@ -265,7 +265,7 @@ Contenidos_Consultados/
 | Sesiones Alcanzadas | D5 | Sesiones que recibieron push |
 | Pushes Enviadas | D6 | Mensajes push enviados |
 | Contenidos del Bot | D7, D8 | Contenidos activos y relevantes |
-| **Contenidos Consultados** (este) | **D11** | **Top 10 contenidos mas consultados** |
+| **Contenidos mas disparados** (este) | **D11** | **Top 10 contenidos mas disparados** |
 | No Entendimiento | D13 | Tasa de no comprension |
 | Efectividad | D14 | % usuarios que lograron objetivo |
 | CES | D15 | Customer Effort Score |

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Script para descargar y procesar Contenidos Consultados desde Athena
+Script para descargar y procesar Contenidos mas disparados desde Athena
 Descarga la vista boti_vw_buscador_rulename y genera tabla completa de contenidos.
 
 Implementa filtrado en 2 capas como el Power BI original:

@@ -169,7 +169,7 @@ MODULOS = {
         'excluir_patron': '*_detalle_*'  # Excluir archivos _detalle
     },
     'contenidos_consultados': {
-        'carpeta': 'Contenidos_Consultados/output',
+        'carpeta': 'Contenidos_mas_disparados/output',
         'patron': 'contenidos_consultados_*.xlsx',
         'patron_alternativo': None,
         'celdas': {
