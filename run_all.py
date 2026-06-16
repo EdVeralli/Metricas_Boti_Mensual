@@ -57,7 +57,7 @@ MODULOS = [
         'requiere_aws': False
     },
     {
-        'nombre': 'Contenidos Consultados',
+        'nombre': 'Contenidos mas disparados',
         'carpeta': 'Contenidos_mas_disparados',
         'script': 'Contenidos_mas_disparados.py',
         'celdas': 'D11',
