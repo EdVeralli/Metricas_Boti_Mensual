@@ -637,7 +637,7 @@ def main():
     log("")
     with step("Guardando CSV crudo procesado"):
         df_out = df.drop(columns=['mes'])  # mes es un Period que no serializa lindo
-        df_out.to_csv(path_csv, index=False, encoding='utf-8-sig')
+        df_out.to_csv(path_csv, index=False, encoding='utf-8-sig', sep=';')
     log("    [OK] {}".format(path_csv))
 
     # 9) Top 200 mensajes mas repetidos
@@ -645,7 +645,7 @@ def main():
         message_counts = Counter(df['mensaje_ok'])
         top_200 = pd.DataFrame(message_counts.most_common(10000),
                                columns=['message_ok', 'count'])
-        top_200.to_csv(path_top200, index=False, encoding='utf-8-sig')
+        top_200.to_csv(path_top200, index=False, encoding='utf-8-sig', sep=';')
     log("    [OK] {}".format(path_top200))
 
     # 10) Comparison mes vs mes anterior (a nivel mensaje individual)

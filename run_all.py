@@ -50,6 +50,13 @@ MODULOS = [
         'requiere_aws': True
     },
     {
+        'nombre': 'BAX Sesiones',
+        'carpeta': 'BAX-sesiones',
+        'script': 'BAX_sesiones.py',
+        'celdas': 'Excel propio (no escribe en el consolidado)',
+        'requiere_aws': True
+    },
+    {
         'nombre': 'Contenidos del Bot',
         'carpeta': 'Contenidos_Bot',
         'script': 'Contenidos_Bot.py',
@@ -61,6 +68,13 @@ MODULOS = [
         'carpeta': 'Contenidos_mas_disparados',
         'script': 'Contenidos_mas_disparados.py',
         'celdas': 'D11',
+        'requiere_aws': True
+    },
+    {
+        'nombre': 'Temas Consultados (Tablero mensajes)',
+        'carpeta': 'Temas_Consultados',
+        'script': 'Temas_Consultados.py',
+        'celdas': 'Excel propio (no escribe en el consolidado)',
         'requiere_aws': True
     },
     {
