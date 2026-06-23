@@ -265,6 +265,33 @@ def _find_all_tsvs():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     return sorted(glob.glob(os.path.join(script_dir, 'rules-*.tsv')))
 
+def _find_all_trasco_csv():
+    '''Busca TODOS los CSV descargados de Athena (trasco_athena*.csv).
+    Estos archivos REEMPLAZAN al TSV legacy: el script los descarga al
+    arranque ejecutando una query a Athena que devuelve Name + Topic path
+    + Topic, con el MISMO formato de columnas que esperan los lectores.'''
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return sorted(glob.glob(os.path.join(script_dir, 'trasco_athena*.csv')))
+
+def _get_data_sources():
+    '''
+    Devuelve la lista de archivos fuente para el cascade de nombres amigables,
+    con su delimiter y encoding correspondiente.
+
+    PRIORIDAD:
+      1) trasco_athena*.csv (CSV bajado de Athena, sep=';', utf-8-sig)
+         Si existe, se usa COMO REEMPLAZO del TSV legacy.
+      2) rules-*.tsv (formato Botmaker legacy, sep='\\t', latin-1)
+         Solo se usa si NO hay ningun trasco_athena*.csv en la carpeta.
+
+    Cada elemento es (path, delimiter, encoding).
+    '''
+    csv_paths = _find_all_trasco_csv()
+    if csv_paths:
+        return [(p, ';', 'utf-8-sig') for p in csv_paths]
+    tsv_paths = _find_all_tsvs()
+    return [(p, '\t', 'latin-1') for p in tsv_paths]
+
 def cargar_descripciones_tsv():
     '''
     Lee TODOS los TSV de reglas (rules-*.tsv) del directorio del script y arma
@@ -282,20 +309,20 @@ def cargar_descripciones_tsv():
         return _DESCRIPCIONES_TSV_CACHE
 
     descripciones = {}
-    tsv_paths = _find_all_tsvs()
-    if not tsv_paths:
-        print("    [WARN] No se encontro ningun rules-*.tsv para descripciones automaticas")
+    sources = _get_data_sources()
+    if not sources:
+        print("    [WARN] No se encontro ninguna fuente (trasco_athena*.csv ni rules-*.tsv) para descripciones automaticas")
         _DESCRIPCIONES_TSV_CACHE = descripciones
         return descripciones
 
     archivos_info = []  # (filename, codigos_en_archivo, codigos_nuevos_aportados, codigos_actualizados)
-    for tsv_path in tsv_paths:
+    for source_path, source_delim, source_enc in sources:
         codigos_archivo = 0
         codigos_nuevos = 0
         codigos_actualizados = 0
         try:
-            with open(tsv_path, 'r', encoding='latin-1', newline='') as f:
-                reader = csv.DictReader(f, delimiter='\t')
+            with open(source_path, 'r', encoding=source_enc, newline='') as f:
+                reader = csv.DictReader(f, delimiter=source_delim)
                 vistos_en_archivo = set()
                 for row in reader:
                     topic = (row.get('Topic') or '').strip()
@@ -318,11 +345,11 @@ def cargar_descripciones_tsv():
                             codigos_actualizados += 1
                         # Latest wins: el actual (mas nuevo) sobreescribe al anterior
                         descripciones[code] = desc
-            archivos_info.append((os.path.basename(tsv_path), codigos_archivo, codigos_nuevos, codigos_actualizados))
+            archivos_info.append((os.path.basename(source_path), codigos_archivo, codigos_nuevos, codigos_actualizados))
         except Exception as e:
-            print("    [WARN] Error leyendo {}: {}".format(tsv_path, e))
+            print("    [WARN] Error leyendo {}: {}".format(source_path, e))
 
-    print("    [INFO] Descripciones automaticas consolidadas desde {} TSV (total: {} codigos unicos):".format(
+    print("    [INFO] Descripciones automaticas consolidadas desde {} archivo(s) (total: {} codigos unicos):".format(
         len(archivos_info), len(descripciones)
     ))
     for nombre, total_archivo, nuevos, actualizados in archivos_info:
@@ -363,29 +390,29 @@ def cargar_mapping_name_a_topic():
         return _NAME_A_TOPIC_CACHE
 
     mapping = {}
-    # Los TSV vienen ordenados ASC (mas viejos primero). Recorrer en orden DESC
-    # asi el mas nuevo se procesa primero y gana al hacer setdefault.
-    tsv_paths = list(reversed(_find_all_tsvs()))
-    if not tsv_paths:
-        print("    [WARN] No se encontro ningun rules-*.tsv para mapping name->topic")
+    # Las fuentes vienen ordenadas ASC (mas viejas primero). Recorrer en orden DESC
+    # asi el archivo mas nuevo se procesa primero y gana al hacer setdefault.
+    sources = list(reversed(_get_data_sources()))
+    if not sources:
+        print("    [WARN] No se encontro ninguna fuente (trasco_athena*.csv ni rules-*.tsv) para mapping name->topic")
         _NAME_A_TOPIC_CACHE = mapping
         return mapping
 
-    for tsv_path in tsv_paths:
+    for source_path, source_delim, source_enc in sources:
         try:
-            with open(tsv_path, 'r', encoding='latin-1', newline='') as f:
-                reader = csv.DictReader(f, delimiter='\t')
+            with open(source_path, 'r', encoding=source_enc, newline='') as f:
+                reader = csv.DictReader(f, delimiter=source_delim)
                 for row in reader:
                     name = (row.get('Name') or '').strip()
                     if not name:
                         continue
-                    # setdefault asegura que el TSV mas nuevo (procesado primero) gane
+                    # setdefault asegura que el archivo mas nuevo (procesado primero) gane
                     if name not in mapping:
                         topic = (row.get('Topic') or '').strip()
                         topic_path = (row.get('Topic path') or '').strip()
                         mapping[name] = (topic, topic_path)
         except Exception as e:
-            print("    [WARN] Error leyendo {} para mapping Name: {}".format(tsv_path, e))
+            print("    [WARN] Error leyendo {} para mapping Name: {}".format(source_path, e))
 
     print("    [INFO] Mapping Name->Topic cargado: {} rulenames unicos".format(len(mapping)))
     _NAME_A_TOPIC_CACHE = mapping
@@ -428,6 +455,100 @@ def resolver_nombre_amigable_por_name(rulename, mapping_name_a_topic):
     if topic == topic_path:
         return "{} [{}]".format(topic, rulename)
     return topic
+
+# ==================== DESCARGA DEL CSV DESDE ATHENA ====================
+# Antes el script dependia de los archivos rules-*.tsv exportados a mano desde
+# Botmaker. Ahora se baja el mismo tipo de mapping (rulename -> Topic, Topic path)
+# directamente desde Athena con una query.
+#
+# El CSV se guarda en la carpeta del script con el formato:
+#     trasco_athena_<mes>_<anio>.csv
+# Columnas: Name, Topic path, Topic   (los mismos nombres que esperan los
+# lectores del cascade legacy).
+# Separador: ;  Encoding: utf-8-sig.
+#
+# Cuando el CSV existe, _get_data_sources() lo prioriza por sobre los TSV legacy.
+
+def descargar_trasco_csv_athena(fecha_inicio, fecha_fin, mes_nombre, anio):
+    '''
+    Ejecuta la query a Athena que devuelve el mapping rulename -> topic_path
+    y lo guarda como CSV en la carpeta del script con el MISMO formato de
+    columnas que el TSV original (Name / Topic path / Topic).
+
+    Devuelve el path al CSV generado.
+    '''
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    nombre_csv = "trasco_athena_{}_{}.csv".format(mes_nombre, anio)
+    path_csv = os.path.join(script_dir, nombre_csv)
+
+    # La query devuelve los mismos NOMBRES de columna que el TSV original
+    # para que el resto del codigo no necesite saber que vienen de Athena.
+    #   - Name        = rule_name (rulename)
+    #   - Topic path  = topic_path completo (sin separar)
+    #   - Topic       = ultimo segmento de topic_path (la categoria mas especifica)
+    query = """SELECT DISTINCT
+    m.rule_name AS "Name",
+    m.topic_path AS "Topic path",
+    ELEMENT_AT(SPLIT(m.topic_path, '/'), CARDINALITY(SPLIT(m.topic_path, '/'))) AS "Topic"
+FROM "caba-piba-consume-zone-db"."boti_message_metrics_2" m
+WHERE CAST(m.creation_time AS DATE) BETWEEN date '{fi}' AND date '{ff}'
+  AND m.rule_name IS NOT NULL
+  AND m.rule_name NOT LIKE '%push%'
+  AND m.rule_name NOT LIKE '%PUSH%'
+GROUP BY m.topic_path, m.rule_name""".format(fi=fecha_inicio, ff=fecha_fin)
+
+    log("    Query Athena (Name / Topic path / Topic):")
+    log("    " + query.replace("\n", "\n    "))
+
+    session = boto3.Session(region_name=CONFIG['region'])
+    with step("    Ejecutando query Trasco en Athena"):
+        try:
+            df = wr.athena.read_sql_query(
+                sql=query,
+                database=CONFIG['database'],
+                workgroup=CONFIG['workgroup'],
+                boto3_session=session,
+                ctas_approach=False,
+                unload_approach=False
+            )
+        except Exception as e:
+            if 'workgroup' in str(e).lower():
+                log("    [WARN] Reintentando sin workgroup...")
+                df = wr.athena.read_sql_query(
+                    sql=query,
+                    database=CONFIG['database'],
+                    boto3_session=session,
+                    ctas_approach=False,
+                    unload_approach=False
+                )
+            else:
+                raise
+
+    log("    Filas devueltas por Athena: {:,}".format(len(df)))
+
+    # awswrangler devuelve los nombres en minuscula. Renombrar para que coincidan
+    # exactamente con los del TSV original (case-sensitive en el reader csv).
+    rename_map = {}
+    for c in df.columns:
+        c_low = c.lower().strip()
+        if c_low == 'name':
+            rename_map[c] = 'Name'
+        elif c_low == 'topic path':
+            rename_map[c] = 'Topic path'
+        elif c_low == 'topic':
+            rename_map[c] = 'Topic'
+    if rename_map:
+        df = df.rename(columns=rename_map)
+
+    # Convertir NA/NaN a string vacio (asi el csv reader no recibe "nan")
+    df = df.fillna('')
+
+    # Guardar como CSV con ; (estandar AR/ES)
+    df.to_csv(path_csv, index=False, encoding='utf-8-sig', sep=';')
+    log("    [OK] CSV guardado: {}".format(nombre_csv))
+    log("         Path: {}".format(path_csv))
+
+    return path_csv
 
 def read_date_config(config_file):
     '''
@@ -1198,6 +1319,16 @@ def execute_query_and_save():
         with step("Guardando CSV crudo ({:,} filas)".format(len(df))):
             df.to_csv(local_path_csv, index=False, encoding='utf-8-sig')
         log("    [OK] CSV guardado: {}".format(filename_csv))
+
+        # Descargar el TRASCO desde Athena (reemplaza a los rules-*.tsv)
+        # Esto genera 'trasco_athena_<mes>_<anio>.csv' en la carpeta del script,
+        # con columnas Name / Topic path / Topic - el mismo formato que esperan
+        # los lectores del cascade (cargar_descripciones_tsv, cargar_mapping_name_a_topic).
+        log("")
+        mes_nombre_tr = get_month_name(mes) if modo == 'mes' else 'rango'
+        anio_tr = anio if modo == 'mes' else fecha_inicio.replace('-', '')
+        with step("Descargando TRASCO desde Athena (Name / Topic path / Topic)"):
+            descargar_trasco_csv_athena(fecha_inicio, fecha_fin, mes_nombre_tr, anio_tr)
 
         # Procesar datos
         log("")
