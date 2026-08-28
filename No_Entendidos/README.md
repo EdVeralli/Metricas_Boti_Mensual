@@ -1105,6 +1105,20 @@ ejecutar_metricas_no_entendidos.bat
 
 ## 🔄 Changelog
 
+### v2.2 (Agosto 2026) - Optimización de performance
+- ⚡ **PASO 10 vectorizado**: eliminaba `7 × N_usuarios` accesos `.loc[i][...]` encadenados
+  (chained indexing, cada uno creando una Series nueva). Ahora es una división de columnas.
+  Es el cambio de mayor impacto del release.
+- ⚡ **PASO 7 vectorizado**: `mm.loc[mmtex1.index + 1]` se calculaba 3 veces sobre todo el
+  DataFrame dentro de una list comprehension. Ahora: un solo `.loc` + máscara con `np.where`.
+- ⚡ **Sin copias completas de DataFrame**: se eliminaron `mm1 = mm.copy()` (PASO 3) y
+  `mm = mm1.copy()` (PASO 7). Menos RAM y menos tiempo.
+- ⚡ **Fechas en un solo pase** (PASO 3): antes 3 reasignaciones de la columna `creation_time`.
+- 🕐 **Timer por paso**: cada encabezado de PASO imprime el tiempo transcurrido, para ubicar
+  cuellos de botella si vuelve a haberlos.
+- ✅ Resultados numéricamente idénticos (verificado incluyendo filas con suma 0 → NaN).
+- 💾 Backup de la versión anterior: `No_Entendidos_backup_prev2.2.py`
+
 ### v2.1 (Enero 2026)
 - ✅ Generación automática de Excel (detallado + dashboard)
 - ✅ Dashboard completo con 17 indicadores

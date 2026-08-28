@@ -190,10 +190,21 @@ SCORE_NE_THRESHOLD = 5.36
 # FUNCIONES AUXILIARES
 # =============================================================================
 
+_T0 = None
+_TPREV = None
+
 def imprimir_seccion(titulo):
+    """OPT v2.2: imprime el tiempo de cada paso."""
+    global _T0, _TPREV
+    import time as _time
+    _now = _time.time()
+    if _T0 is None:
+        _T0 = _TPREV = _now
     print("\n" + "=" * 80)
     print(f"  {titulo}")
+    print(f"  [+{_now - _TPREV:7.1f}s desde el paso anterior  |  {_now - _T0:7.1f}s total]")
     print("=" * 80)
+    _TPREV = _now
 
 def imprimir_progreso(mensaje):
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -334,11 +345,17 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         )
         
         imprimir_progreso("Procesando mensajes...")
-        mm.creation_time = pd.to_datetime(mm.creation_time)
-        mm.creation_time = mm.creation_time.dt.tz_localize(None)
-        mm.creation_time = mm.creation_time.dt.ceil('s')
-        
-        mm1 = mm.copy()
+        # OPT v2.2: un solo pase de fechas (antes: 3 reasignaciones de la columna)
+        _ct = pd.to_datetime(mm['creation_time'], errors='coerce')
+        try:
+            _ct = _ct.dt.tz_localize(None)
+        except TypeError:
+            pass  # ya era tz-naive
+        mm['creation_time'] = _ct.dt.ceil('s')
+        del _ct
+
+        # OPT v2.2: mm1 = mm sin .copy() (mm no se vuelve a usar)
+        mm1 = mm
         del mm
         liberar_memoria()
         
@@ -434,7 +451,7 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         # =================================================================
         imprimir_seccion("PASO 7: ANÁLISIS")
         
-        mm = mm1.copy()
+        mm = mm1  # OPT v2.2: sin .copy(), mm solo se lee en este paso
         mm.reset_index(inplace=True, drop=True)
         
         mmtex1 = mm[np.logical_and(mm.msg_from == 'user', mm.message_type == 'Text')][
@@ -445,15 +462,16 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         if len(mmtex1) > 0:
             mmtex1 = mmtex1.iloc[:-1]
         
-        mmtex1['rule_name'] = [
-            r if su == sb and f == 'bot' else None
-            for r, su, sb, f in zip(
-                mm.loc[mmtex1.index + 1].rule_name.values,
-                mmtex1.session_id.values,
-                mm.loc[mmtex1.index + 1].session_id.values,
-                mm.loc[mmtex1.index + 1].msg_from.values
-            )
-        ]
+        # OPT v2.2: un solo .loc + comparacion vectorizada
+        # (antes: 3 x mm.loc sobre todo el DataFrame + list comprehension)
+        _sig = mm.loc[mmtex1.index + 1]
+        _mask_bot = (
+            (_sig.session_id.values == mmtex1.session_id.values)
+            & (_sig.msg_from.values == 'bot')
+        )
+        _rn = np.asarray(_sig.rule_name.values, dtype=object)
+        mmtex1['rule_name'] = np.where(_mask_bot, _rn, None)
+        del _sig, _mask_bot, _rn
         
         letra1 = mmtex1[mmtex1.rule_name == RULE_LETRA_NO_EXISTE].copy()
         letra1.rename(columns={'id': 'message_id'}, inplace=True)
@@ -578,13 +596,14 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         n_usuarios = len(respuestas_por_usuario)
         imprimir_progreso(f"Calculando porcentajes para {n_usuarios:,} usuarios...")
 
-        for idx, categoria in enumerate(categorias, 1):
-            imprimir_progreso(f"  [{idx}/{len(categorias)}] Calculando porcentaje_{categoria}...")
-            respuestas_por_usuario[f'porcentaje_{categoria}'] = [
-                respuestas_por_usuario.loc[i][categoria] /
-                respuestas_por_usuario.loc[i][categorias].sum()
-                for i in respuestas_por_usuario.index
-            ]
+        # OPT v2.2: vectorizado. Antes: 7 x N_usuarios accesos .loc encadenados,
+        # cada uno creando una Series nueva. Resultado numericamente identico.
+        _total = respuestas_por_usuario[categorias].sum(axis=1).replace(0, np.nan)
+        for categoria in categorias:
+            respuestas_por_usuario[f'porcentaje_{categoria}'] = (
+                respuestas_por_usuario[categoria] / _total
+            )
+        del _total
 
         imprimir_progreso("✓ Porcentajes calculados")
         
