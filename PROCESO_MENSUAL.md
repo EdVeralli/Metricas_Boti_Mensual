@@ -253,11 +253,31 @@ python calcular_efectividad_web_boti.py
 
 Lee:
 - `Metricas_Boti_Mensual/Feedback_Efectividad/output/feedback_efectividad_<mes>_<año>_efectividad.xlsx`
+  → celdas **C28** y **B30**
 - `Metricas_Web_Mensual/Satisfaccion/data/conteo_completo_<mes>_<año>.xlsx`
+  → columnas `Total_General` y `Tasa_Efectividad`
 
 Genera:
 **`efectividad_web_boti_<mes>_<año>.xlsx`** en `efectividad_web_boti/` (subcarpeta
 en la raíz de Boti).
+
+#### ⚠️ Verificación obligatoria antes de dar por buena la efectividad combinada
+
+El script lee **celdas hardcodeadas** (`C28` y `B30`) del Excel de
+`Feedback_Efectividad`. Pero ese Excel se arma con un **contador de filas
+dinámico** que recorre las reglas `CXF` que devuelve Athena.
+
+Si cambia la cantidad de reglas `CXF` del mes, las filas se corren y C28/B30
+dejan de apuntar a los valores correctos — **y el script no falla**, sigue
+leyendo *algún* número y calcula la efectividad combinada mal.
+
+**Antes de enviar el resultado, abrir `_efectividad.xlsx` y confirmar que:**
+
+- **C28** es el porcentaje de la fila **"Positivas"**
+- **B30** es el **total** (la fila sin etiqueta, debajo de "Negativo")
+
+Si se corrieron, ajustar las celdas en `calcular_efectividad_web_boti.py`
+(líneas 338-339). Detalle completo en `Feedback_Efectividad/README.md`.
 
 ---
 
@@ -352,8 +372,8 @@ git push origin main
 | 8 | Temas Consultados | Athena (msgs) | Ranking de temas para tablero |
 | 9 | No Entendimiento **(MANUAL)** | Athena | Tasa de no entendimiento (D13) |
 | 10 | Feedback Efectividad | Athena | Tasa de Efectividad (D14) |
-| 11 | Feedback CES | Athena | Customer Effort Score (D15) |
-| 12 | Feedback CSAT | Athena | Customer Satisfaction (D16) |
+| 11 | Feedback CES | Athena | Customer Effort Score, escala 1-5 **menos es mejor** (D15) |
+| 12 | Feedback CSAT | Athena | **% de usuarios conformes** — no es escala 1-5 (D16) |
 | 13 | Disponibilidad WhatsApp | ? | Uptime servidor WhatsApp (D17) |
 
 Cruce entre repos:
@@ -401,6 +421,35 @@ Cruce entre repos:
 
 - **`Falta 1 TSV`** → Faltan los 2 TSV exportados de Botmaker. Exportar del
   portal Botmaker y copiar a `Contenidos_Bot/`.
+- **D7 o D8 dan un número que no cierra** → Revisar la constante
+  `EXCLUDED_TOPICS`. Si Botmaker agregó una categoría interna nueva que no está
+  en la lista, sus topics se cuentan como relevantes e inflan D8.
+
+### 9.5.b. Módulos de Feedback (Efectividad, CES, CSAT)
+
+Los tres corren **la misma query** (`rule_name LIKE '%CXF%'` sobre
+`boti_message_metrics_2`) y se diferencian solo en qué reglas toman.
+
+- **`[ADVERTENCIA] No se encontró la regla: <nombre>`** → **El error más
+  peligroso de los tres módulos.** Cambió el nombre de una regla en Botmaker
+  (muchas veces es solo un acento o un espacio). El script le asigna **0** y
+  **sigue adelante con un número mal**, sin fallar.
+
+  Hay que leer el output buscando esta advertencia. Para arreglarlo: abrir el
+  CSV del módulo (que trae *todas* las reglas `CXF`), encontrar el nombre
+  nuevo, y actualizar la constante correspondiente en la cabecera del script
+  (`REGLAS_EFECTIVIDAD`, `REGLAS_CES` o `REGLAS_CSAT`).
+
+- **Un valor da 0** → No se encontró ninguna de las reglas, o no hubo
+  respuestas en el período. Revisar el CSV.
+
+- **Un valor salta mucho contra el mes anterior** → Antes de reportarlo,
+  verificar que no haya advertencias de reglas faltantes y comparar el total de
+  respuestas contra meses previos.
+
+- **Recordatorio de interpretación:** CES (D15) va de 1 a 5 y **menos es
+  mejor**; CSAT (D16) es un **porcentaje**, no una escala, y las respuestas
+  "No sé" cuentan como negativas.
 
 ### 9.6. DescubrirBA-Agente (Power BI + OCR)
 
@@ -521,6 +570,16 @@ Cambios de esta revisión:
   no es confiable, con el detalle del bug de julio 2026 y qué hacer mientras
   tanto.
 - **3.6 corregida** en línea con lo anterior.
+- **Paso C** (sección 4): agregada la verificación obligatoria de las celdas
+  `C28`/`B30`. El cruce Web+Boti las lee hardcodeadas de un Excel con layout
+  dinámico, así que pueden correrse y devolver un número mal sin fallar.
+- **Nueva sección 9.5.b** con el troubleshooting de los tres módulos de
+  Feedback. El caso crítico es
+  `[ADVERTENCIA] No se encontró la regla` — asigna 0 y sigue con el número mal.
+- **Sección 8 corregida**: CSAT (D16) es un **porcentaje**, no una escala 1-5
+  (el texto del template del dashboard dice 1-5, pero el script calcula
+  `positivas / total`). Y en CES (D15) **menos es mejor**.
+- Todos los módulos de Boti tienen ahora **README propio**.
 
 Cuando cambien módulos, se agreguen fuentes de datos o cambie el proceso,
 actualizar este archivo en **ambos repos** para mantenerlos sincronizados.

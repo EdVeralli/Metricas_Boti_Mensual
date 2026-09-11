@@ -44,7 +44,7 @@ unifica en un único dashboard.
 
 | Concepto | Cantidad |
 |---|---|
-| Módulos totales | **13** |
+| Módulos totales | **13** (todos con README propio) |
 | Módulos que alimentan el consolidado | **11** |
 | Celdas del consolidado que llenamos | **13** (D2-D8, D11, D13-D17) |
 | Módulos con Excel propio (no consolidan) | **2** (BAX Sesiones, Temas Consultados) |
@@ -332,6 +332,9 @@ más serie diaria.
 
 **No escribe en el consolidado** — es una métrica de seguimiento aparte. **~2 min.**
 
+Filtra por las particiones `year`/`month`/`day` (no por `session_creation_time`)
+para replicar el Excel original. Ver `BAX-sesiones/README.md`.
+
 ### 6. Contenidos del Bot — D7, D8
 
 **Script:** `Contenidos_Bot.py`
@@ -351,6 +354,9 @@ más serie diaria.
 > recientes automáticamente y avisa si falta alguno.
 
 **Outputs:** `contenidos_bot_<mes>_<año>.xlsx` + `contenidos_bot_detalle_<mes>_<año>.xlsx`
+
+El filtro que separa D8 de D7 (cinco exclusiones en cadena) está detallado en
+`Contenidos_Bot/README.md`.
 
 ### 7. Contenidos más disparados — D11
 
@@ -406,8 +412,13 @@ Nada ~6%, NE ~6%, Letra ~0.1%. **D13 = Nada + NE ≈ 11-12%.**
 ### 10. Feedback - Efectividad — D14
 
 **Script:** `Feedback_Efectividad.py`
-Tasa de transacciones completadas. **~2 min.**
-También es insumo de `calcular_efectividad_web_boti.py`.
+Porcentaje de usuarios que respondieron que sí lograron su objetivo, usando 8
+reglas `CXF` (Sí/No × 4 categorías). **~2 min.**
+
+También es **insumo de `calcular_efectividad_web_boti.py`**, que lee celdas
+hardcodeadas de su Excel `_efectividad.xlsx`. Ver la advertencia en
+`Feedback_Efectividad/README.md` antes de dar por buena la efectividad
+combinada.
 
 ### 11. Feedback - CES — D15
 
@@ -490,26 +501,32 @@ Metricas_Boti_Mensual/                      ← Repositorio raíz
 │
 ├── Metricas_Boti_Conversaciones_Usuarios/  ← [1] D2, D3
 │   ├── Usuarios_Conversaciones.py
+│   ├── README.md
 │   └── output/
 │
 ├── Pushes_Enviadas/                        ← [2] D6
 │   ├── Pushes_Enviadas.py
+│   ├── README.md
 │   └── output/
 │
 ├── Sesiones_Abiertas_Pushes/               ← [3] D4
 │   ├── Sesiones_Abiertas_porPushes.py
+│   ├── README.md
 │   └── output/
 │
 ├── Sesiones_alcanzadas_pushes/             ← [4] D5
 │   ├── Sesiones_Alcanzadas.py
+│   ├── README.md
 │   └── output/
 │
 ├── BAX-sesiones/                           ← [5] Excel propio
 │   ├── BAX_sesiones.py
+│   ├── README.md                           ← Filtro por particiones explicado
 │   └── output/
 │
 ├── Contenidos_Bot/                         ← [6] D7, D8
 │   ├── Contenidos_Bot.py
+│   ├── README.md                           ← Filtro de relevancia (D8)
 │   ├── rules-*.tsv                         ← Exportados de Botmaker
 │   └── output/
 │
@@ -538,18 +555,22 @@ Metricas_Boti_Mensual/                      ← Repositorio raíz
 │
 ├── Feedback_Efectividad/                   ← [10] D14
 │   ├── Feedback_Efectividad.py
+│   ├── README.md                           ← ⚠️ celdas C28/B30 del cruce Web+Boti
 │   └── output/
 │
 ├── Feedback_CES/                           ← [11] D15
 │   ├── Feedback_CES.py
+│   ├── README.md
 │   └── output/
 │
 ├── Feedback_CSAT/                          ← [12] D16
 │   ├── Feedback_CSAT.py
+│   ├── README.md
 │   └── output/
 │
 └── Metricas_Boti_Disponibilidad/           ← [13] D17
     ├── WhatsApp_Availability.py
+    ├── README.md
     └── output/
 ```
 
@@ -751,6 +772,16 @@ interacción), después `run_all.py`, que corre desatendido.
   y `Temas_Consultados`.
 - **Corregido D11:** figuraba como "responsabilidad de otro equipo"; lo genera
   `Contenidos_mas_disparados` desde junio 2026.
+- **README propio para los 5 módulos que no tenían:** `BAX-sesiones`,
+  `Contenidos_Bot`, `Feedback_Efectividad`, `Feedback_CES` y `Feedback_CSAT`.
+  Ahora los 13 módulos están documentados.
+- **Corregido CSAT (D16):** estaba descrito como escala 1-5 (texto heredado del
+  template del dashboard), pero el script calcula `positivas / total` y se
+  consolida como **porcentaje**.
+- **Documentada la fragilidad del cruce Web+Boti:**
+  `calcular_efectividad_web_boti.py` lee las celdas hardcodeadas `C28`/`B30` de
+  un Excel con layout dinámico. Si cambia la cantidad de reglas `CXF`, lee mal
+  sin fallar. Agregada verificación obligatoria en el runbook.
 - **Agregado link a `PROCESO_MENSUAL.md`**, el runbook maestro end-to-end que
   vive idéntico en ambos repos.
 - **Limpieza:** eliminados `run_all_old.py` y el worktree duplicado
