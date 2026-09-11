@@ -383,11 +383,11 @@ Clasifica los mensajes de usuario en 14 categorías + "Otros" y genera el
 **ranking de temas** que se pega en el tablero:
 
 ```
-output/ranking_temas_<mes>_<año>.txt
+output/ranking_temas_consultados_<mes>_<año>.txt
 ```
 
 **Outputs:** CSV de temas, top 200 mensajes, comparativo, reporte, top
-variaciones y el ranking en txt. Ver `Temas_Consultados/README.md`.
+variaciones y el ranking (en `.txt` y `.xlsx`). Ver `Temas_Consultados/README.md`.
 
 > El CSV grande (`temas_consultados_*.csv`, ~500 MB) está en `.gitignore`.
 

@@ -14,8 +14,9 @@ Genera:
   - output/comparison_mensajes_<mes>_<año>.xlsx     Comparacion mes vs mes anterior
   - output/reporte_mensajes_<mes>_<año>.xlsx        Comparativo + Top100 Otros
   - output/top_variaciones_<mes>_<año>.xlsx         Top 3 subidas/bajadas por categoria
-  - output/ranking_temas_<mes>_<año>.txt            Texto formateado para el TABLERO
-                                                    (celda 'Temas mas consultados')
+  - output/ranking_temas_consultados_<mes>_<año>.txt   Texto formateado para el TABLERO
+                                                       (celda 'Temas mas consultados')
+  - output/ranking_temas_consultados_<mes>_<año>.xlsx  El mismo ranking en template
 
 Workgroup: Production-caba-piba-athena-boti-group
 Rol: PIBADataScientist
@@ -695,7 +696,7 @@ def main():
         generar_excel_ranking(path_ranking_xlsx, ranking_texto, periodo_label)
 
     # (La actualizacion automatica de la planilla maestra fue descartada.
-    #  El ranking queda solo en output/ranking_temas_<mes>_<anio>.xlsx)
+    #  El ranking queda solo en output/ranking_temas_consultados_<mes>_<anio>.xlsx)
 
     log("")
     log("=" * 60)

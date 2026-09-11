@@ -17,13 +17,15 @@ por un script standalone que:
 ```
 Temas_Consultados/
 ├── Temas_Consultados.py     # Script principal
+├── Temas_Consultados_Anual.py  # Variante anual (mismo criterio, todo el año)
 ├── output/                  # Outputs auto-generados
-│   ├── temas_consultados_<mes>_<año>.csv
+│   ├── temas_consultados_<mes>_<año>.csv          (gitignored, ~500 MB)
 │   ├── top_200_mensajes_<mes>_<año>.csv
 │   ├── comparison_mensajes_<mes>_<año>.xlsx
-│   ├── reporte_mensajes_<mes>_<año>.xlsx     (Comparativo + Top100 Otros)
-│   ├── top_variaciones_<mes>_<año>.xlsx      (Top 3 ↑/↓ por categoría)
-│   └── ranking_temas_<mes>_<año>.txt         (texto para el tablero)
+│   ├── reporte_mensajes_<mes>_<año>.xlsx          (Comparativo + Top100 Otros)
+│   ├── top_variaciones_<mes>_<año>.xlsx           (Top 3 ↑/↓ por categoría)
+│   ├── ranking_temas_consultados_<mes>_<año>.txt  (texto para el tablero)
+│   └── ranking_temas_consultados_<mes>_<año>.xlsx (el mismo, en template)
 └── README.md                # Este archivo
 ```
 
@@ -68,8 +70,9 @@ Solo soporta el modo **MES + AÑO** (el análisis es de meses completos).
 
 ## Output principal: el ranking del tablero
 
-El archivo **`output/ranking_temas_<mes>_<año>.txt`** contiene el texto formateado
-exactamente como va en la celda **"Temas más consultados"** del tablero:
+El archivo **`output/ranking_temas_consultados_<mes>_<año>.txt`** contiene el
+texto formateado exactamente como va en la celda **"Temas más consultados"**
+del tablero:
 
 ```
 1-Infracciones y Multas

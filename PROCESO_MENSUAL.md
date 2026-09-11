@@ -278,7 +278,8 @@ Hay que buscarlos a mano en su carpeta cuando el equipo los pide:
 
 | Archivo | Ubicación | Para qué sirve |
 |---|---|---|
-| `ranking_temas_<mes>_<año>.txt` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Texto del ranking que se **pega en la celda "Temas más consultados"** del tablero |
+| `ranking_temas_consultados_<mes>_<año>.txt` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Texto del ranking que se **pega en la celda "Temas más consultados"** del tablero |
+| `ranking_temas_consultados_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | El mismo ranking en formato template |
 | `reporte_mensajes_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Comparativo mes vs mes anterior + Top 100 "Otros" |
 | `top_variaciones_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Top 3 subidas/bajadas por categoría |
 | `bax_sesiones_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/BAX-sesiones/output/` | Sesiones del canal webchat BAX - App (total + serie diaria) |
