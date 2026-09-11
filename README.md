@@ -412,12 +412,20 @@ También es insumo de `calcular_efectividad_web_boti.py`.
 ### 11. Feedback - CES — D15
 
 **Script:** `Feedback_CES.py`
-Customer Effort Score: promedio ponderado de facilidad de uso (1-5). **~2 min.**
+Customer Effort Score: promedio ponderado de facilidad de uso, en escala
+**1 a 5 donde MENOS es mejor** (1 = Muy fácil, 5 = Muy difícil). Usa 10 reglas
+`CXF` (5 niveles × 2 categorías). **~2 min.**
 
 ### 12. Feedback - CSAT — D16
 
 **Script:** `Feedback_CSAT.py`
-Customer Satisfaction: promedio de satisfacción (1-5). **~2 min.**
+Customer Satisfaction: **porcentaje** de usuarios conformes
+(`positivas / total`), usando 15 reglas `CXF` (5 respuestas × 3 categorías).
+Las respuestas "No sé" cuentan como negativas. **~2 min.**
+
+> El texto del template del dashboard dice "escala de 1 a 5" para esta fila,
+> pero eso quedó del diseño original: **D16 es un porcentaje**. El módulo que
+> devuelve una escala 1-5 es CES (D15).
 
 ### 13. Disponibilidad WhatsApp — D17
 
@@ -449,8 +457,8 @@ nosotros** (D2-D8, D11, D13-D17); **3 son de otro equipo** (D9, D10, D12).
 | **12** | Derivaciones | Q Derivaciones | — | Otro equipo |
 | **13** | No entendimiento | Performance motor IA | No Entendidos | Implementado |
 | **14** | Tasa de Efectividad | % usuarios que lograron objetivo | Feedback Efectividad | Implementado |
-| **15** | CES | Facilidad de interacción (1-5) | Feedback CES | Implementado |
-| **16** | Satisfacción (CSAT) | Satisfacción usuario (1-5) | Feedback CSAT | Implementado |
+| **15** | CES | Facilidad de interacción (1-5, menos es mejor) | Feedback CES | Implementado |
+| **16** | Satisfacción (CSAT) | % de usuarios conformes | Feedback CSAT | Implementado |
 | **17** | Uptime servidor | Disponibilidad WhatsApp | Disponibilidad | Implementado |
 
 ### Cómo funciona
