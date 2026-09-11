@@ -178,9 +178,10 @@ sin datos ese módulo.
   módulo falla.
 - **`Contenidos_mas_disparados`**: descarga automática desde Athena (no
   requiere TSV manual desde que se hizo el cambio a `trasco_athena_*.csv`).
-- **`DescubrirBA-Agente`**: totalmente automatizado con Playwright. Si Power
-  BI cambió y falla, el script pide screenshot manual (te dice qué nombre y
-  dónde guardarlo).
+- **`DescubrirBA-Agente`**: ⚠️ **la automatización Playwright no es confiable**
+  (ver 9.6). Contar con hacer el paso manual: el script te pide un screenshot
+  del dashboard con el tooltip visible y te dice qué nombre ponerle y dónde
+  guardarlo. **Verificar el valor contra el dashboard** antes de cerrar el mes.
 
 ---
 
@@ -269,6 +270,21 @@ Al finalizar los 3 pasos, tenés **3 archivos consolidados** para el equipo:
 | `ba_metricas_consolidado_<mes-año>.xlsx` | Raíz de `Metricas_Web_Mensual/` | Paso A |
 | `Boti_Consolidado_<mes>_<año>.xlsx` | Raíz de `Metricas_Boti_Mensual/` | Paso B |
 | `efectividad_web_boti_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/efectividad_web_boti/` | Paso C |
+
+### 5.1. Outputs que NO van al consolidado (pero se entregan igual)
+
+Estos módulos generan su propio Excel y **no escriben en ningún consolidado**.
+Hay que buscarlos a mano en su carpeta cuando el equipo los pide:
+
+| Archivo | Ubicación | Para qué sirve |
+|---|---|---|
+| `ranking_temas_<mes>_<año>.txt` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Texto del ranking que se **pega en la celda "Temas más consultados"** del tablero |
+| `reporte_mensajes_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Comparativo mes vs mes anterior + Top 100 "Otros" |
+| `top_variaciones_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/Temas_Consultados/output/` | Top 3 subidas/bajadas por categoría |
+| `bax_sesiones_<mes>_<año>.xlsx` | `Metricas_Boti_Mensual/BAX-sesiones/output/` | Sesiones del canal webchat BAX - App (total + serie diaria) |
+| `ba_metricas_<mes-año>.xlsx` | `Metricas_Web_Mensual/DescubrirBA-Linda/` | Métricas del sitio LINDA |
+| `ba_metricas_<mes-año>.xlsx` | `Metricas_Web_Mensual/BAProductiva/` | Métricas de `/inicio/ba-productiva` |
+| `ba_metricas_<mes-año>.xlsx` | `Metricas_Web_Mensual/DescubrirBA-Agente/` | Total Conversations del agente `descubrir` |
 
 Además, cada módulo deja sus **archivos parciales** (CSV, Excel detallado,
 HTML) en su propia carpeta `output/` o similar. Sirven para auditoría.
@@ -387,12 +403,49 @@ Cruce entre repos:
 
 ### 9.6. DescubrirBA-Agente (Power BI + OCR)
 
-- **Playwright falla y va al fallback manual** → El dashboard puede haber
-  cambiado layout. Correr `python automatizar_powerbi.py --debug` para ver
-  visualmente qué pasa y recalibrar coordenadas en el script.
+> **ESTADO AL 2026-09-11: la automatización Playwright NO es confiable.**
+> Contar con usar el **fallback manual** hasta nuevo aviso. Ver más abajo.
+
+**El problema de fondo.** El valor sale de hacer hover sobre la barra
+`descubrir` del visual "Total Conversations por Agente". Power BI ordena las
+barras **por valor descendente**, así que la posición de `descubrir` cambia
+mes a mes. En julio 2026 `descubrir` cayó al 4° puesto y el script —que
+hardcodeaba "hover en la primera barra"— leyó `out_of_scope` (**16.023**) en
+lugar de `descubrir` (**10.210**). El Excel de julio salió mal por eso.
+
+**Qué se intentó (y no funcionó):**
+
+1. **Filtrar el slicer `Agente = descubrir`** para que quede una sola barra en
+   posición fija. El click en el slicer funciona, pero el hover posterior cae
+   en el lugar equivocado porque el layout se reacomoda.
+2. **Reemplazar las coordenadas fijas por búsqueda OCR** de los labels
+   (`Mes`, `Agente`, `descubrir`) con `pytesseract.image_to_data()`. Tampoco
+   cerró: en la última corrida devolvió **6** en vez de 10.210.
+
+**Por qué cuesta tanto.** El dashboard es un canvas dentro de un iframe
+sandboxeado — no hay DOM al que agarrarse, todo es pixel-hunting a ciegas.
+Además el navegador headless de Playwright tiene distinto DPR que el Chrome
+que se usa para calibrar visualmente, así que las coordenadas que se validan
+a ojo no se trasladan tal cual.
+
+**Qué hacer mientras tanto:**
+
+- Dejar que el script caiga al **fallback manual** (paso 2/2). Te dice la URL,
+  qué filtro poner, dónde hacer hover, el nombre exacto del PNG y la carpeta
+  donde guardarlo. Apretás ENTER y el OCR del screenshot manual sí funciona bien.
+- **Verificar siempre el valor** contra el dashboard antes de dar el mes por
+  cerrado. Es el único módulo del proceso donde el número puede salir mal sin
+  que nada falle a la vista.
+
+**Próximo intento pendiente:** verificar si los slicers (`Mes`, `Agente`) son
+elementos del DOM y no canvas. Si lo son, se resuelve con
+`page.get_by_text('Julio').click()` — sin OCR ni coordenadas. Falta confirmarlo.
+
+**Otros errores de este módulo:**
+
 - **Tesseract not found** → Ver sección 2.3 (instalación única).
 - **`Failed loading language 'spa'`** → Falta el pack Spanish de Tesseract.
-  Re-instalar Tesseract marcando "Spanish" en "Additional language data".
+  Re-instalar marcando "Spanish" en "Additional language data".
 
 ### 9.7. Errores generales de git
 
@@ -456,6 +509,17 @@ Estructura del template Excel (columna B = Indicador, columna C = Valor):
 
 ## Última actualización
 
-Este runbook fue generado el **2026-07-05**. Cuando cambien módulos, agregar
-nuevas fuentes de datos, o cambie el proceso, actualizar este archivo en
-**ambos repos** para mantenerlos sincronizados.
+**2026-09-11** (generado originalmente el 2026-07-05).
+
+Cambios de esta revisión:
+
+- Nueva sección **5.1** con los outputs que no van al consolidado y hay que
+  buscar a mano (ranking de temas para el tablero, BAX sesiones, LINDA,
+  BAProductiva, DescubrirBA-Agente).
+- **9.6 reescrita**: documentado que la automatización de DescubrirBA-Agente
+  no es confiable, con el detalle del bug de julio 2026 y qué hacer mientras
+  tanto.
+- **3.6 corregida** en línea con lo anterior.
+
+Cuando cambien módulos, se agreguen fuentes de datos o cambie el proceso,
+actualizar este archivo en **ambos repos** para mantenerlos sincronizados.
