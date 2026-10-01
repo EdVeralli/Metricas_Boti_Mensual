@@ -21,6 +21,38 @@ ATHENA_OUTPUT_BUCKET = None  # Se obtiene automáticamente del perfil AWS
 ATHENA_REGION = 'us-east-1'  # Cambiar si usas otra región
 
 # =============================================================================
+# DESCARGA DE LOS CSV — INTERRUPTOR
+# =============================================================================
+# El token de aws-azure-login dura 1 HORA FIJA (el rol no permite mas) y los
+# CSV pesan varios GB, asi que la descarga no entra en esa ventana.
+#
+#   True  → descarga por RANGOS DE BYTES, reanudable.
+#           Si el token vence, renueva y SIGUE DESDE DONDE QUEDO.
+#           Si cortas el script, al re-correrlo retoma el .parte.
+#
+#   False → comportamiento ORIGINAL (s3_client.download_file).
+#           Una sola operacion larga: si el token vence, arranca de cero.
+#
+# Si algo sale mal con la version nueva, poner False y queda todo como antes.
+USAR_DESCARGA_REANUDABLE = True
+
+# Tamaño de cada pedazo, en MB. Mas chico = mas resiliente pero mas requests.
+DESCARGA_CHUNK_MB = 256
+
+# Cada cuantos minutos renovar el token preventivamente durante la descarga.
+#
+# OJO: este contador arranca cuando EMPIEZA LA DESCARGA, no cuando se emitio
+# el token. Para cuando la descarga arranca, el token ya viene usado: pasaron
+# el login, el prompt de revalidacion y los minutos que tardo la query en
+# Athena. Asi que hay que dejar margen.
+#
+# Calibrado 01/10/2026: con 45 min no llegaba a dispararse — en la corrida de
+# septiembre el token vencio a los ~40 min de descarga (al 74% de un archivo
+# de 16 GB), antes del preventivo. Con 25 queda margen aunque el token llegue
+# con media hora consumida.
+DESCARGA_MINUTOS_REFRESH = 25
+
+# =============================================================================
 # FUNCIONES PRINCIPALES
 # =============================================================================
 
@@ -301,10 +333,166 @@ def ejecutar_query_athena(query_sql, output_location=None, boto3_session=None):
         raise Exception(f"❌ Query falló: {error}")
 
 
+def descargar_desde_s3_reanudable(s3_path, archivo_local, boto3_session=None,
+                                   chunk_mb=256, minutos_refresh=45):
+    """
+    Descarga un archivo grande de S3 por RANGOS DE BYTES, de forma reanudable.
+
+    POR QUE EXISTE ESTA FUNCION
+    ---------------------------
+    El token de aws-azure-login dura 1 HORA FIJA (el rol no permite mas).
+    Los CSV de No_Entendidos pesan varios GB y tardan mas que eso en bajar.
+
+    La version anterior usaba s3_client.download_file(), que es UNA sola
+    operacion larga: si el token vencia a la mitad, fallaba y el reintento
+    arrancaba DE CERO. Con archivos de este tamaño eso es un loop infinito —
+    nunca llegaba a terminar antes de que venciera el token de nuevo.
+
+    COMO LO RESUELVE
+    ----------------
+    - Baja el archivo en pedazos de `chunk_mb` MB usando get_object(Range=...).
+    - Va escribiendo a `<archivo_local>.parte`, en modo append.
+    - Si el token vence, pide renovacion y SIGUE DESDE DONDE QUEDO
+      (lee el tamaño del .parte), no desde cero.
+    - Si el script se corta y lo volves a correr, detecta el .parte y retoma.
+    - Renueva el token PREVENTIVAMENTE cada `minutos_refresh` minutos, para
+      no chocar contra el vencimiento en medio de un chunk.
+    - Recien cuando termina renombra .parte al nombre final, asi un archivo
+      incompleto nunca se confunde con uno bueno.
+
+    Args:
+        s3_path: 's3://bucket/key'
+        archivo_local: ruta destino
+        boto3_session: sesion de boto3 (opcional)
+        chunk_mb: tamaño de cada pedazo en MB (default 256)
+        minutos_refresh: cada cuanto renovar el token preventivamente
+
+    Returns:
+        str: ruta del archivo descargado
+    """
+    s3_path_limpio = s3_path.replace('s3://', '')
+    bucket, key = s3_path_limpio.split('/', 1)
+
+    archivo_parcial = archivo_local + '.parte'
+    chunk_size = chunk_mb * 1024 * 1024
+
+    print(f"  📥 Descarga reanudable desde S3")
+    print(f"     Bucket: {bucket}")
+    print(f"     Key: {key}")
+    print(f"     Chunk: {chunk_mb} MB")
+
+    if boto3_session is None:
+        boto3_session = crear_session_boto3_fresca()
+    s3_client = boto3_session.client('s3', region_name=ATHENA_REGION)
+
+    # --- Tamaño total del objeto ---
+    try:
+        head = s3_client.head_object(Bucket=bucket, Key=key)
+    except Exception as e:
+        if 'ExpiredToken' in str(e) or 'expired' in str(e).lower():
+            if not solicitar_renovacion_token():
+                raise Exception("No se pudo renovar el token AWS")
+            boto3_session = crear_session_boto3_fresca()
+            s3_client = boto3_session.client('s3', region_name=ATHENA_REGION)
+            head = s3_client.head_object(Bucket=bucket, Key=key)
+        else:
+            raise
+
+    tamanio_total = head['ContentLength']
+    total_mb = tamanio_total / (1024 * 1024)
+    print(f"     Tamaño total: {total_mb:,.1f} MB")
+
+    # --- Retomar si ya hay descarga parcial ---
+    if os.path.exists(archivo_parcial):
+        offset = os.path.getsize(archivo_parcial)
+        if offset > tamanio_total:
+            print(f"  ⚠️  El .parte es mas grande que el objeto en S3 — se descarta")
+            os.remove(archivo_parcial)
+            offset = 0
+        elif offset == tamanio_total:
+            print(f"  ✓ El .parte ya esta completo, solo falta renombrarlo")
+        else:
+            print(f"  ↩️  Retomando descarga previa desde {offset/(1024*1024):,.1f} MB "
+                  f"({offset*100/tamanio_total:.1f}%)")
+    else:
+        offset = 0
+
+    t_ultimo_refresh = time.time()
+    t_inicio = time.time()
+
+    while offset < tamanio_total:
+        # Renovacion PREVENTIVA: no esperar a que falle
+        if (time.time() - t_ultimo_refresh) > (minutos_refresh * 60):
+            print(f"\n  ⏰ Pasaron {minutos_refresh} min — renovacion preventiva del token")
+            print(f"     (progreso guardado: {offset/(1024*1024):,.1f} MB)")
+            if not solicitar_renovacion_token():
+                raise Exception("No se pudo renovar el token AWS")
+            boto3_session = crear_session_boto3_fresca()
+            s3_client = boto3_session.client('s3', region_name=ATHENA_REGION)
+            t_ultimo_refresh = time.time()
+
+        fin = min(offset + chunk_size - 1, tamanio_total - 1)
+
+        try:
+            resp = s3_client.get_object(
+                Bucket=bucket, Key=key,
+                Range=f'bytes={offset}-{fin}'
+            )
+            with open(archivo_parcial, 'ab') as f:
+                for bloque in resp['Body'].iter_chunks(chunk_size=8 * 1024 * 1024):
+                    f.write(bloque)
+
+            offset = os.path.getsize(archivo_parcial)
+
+            pct = offset * 100 / tamanio_total
+            transcurrido = time.time() - t_inicio
+            vel = (offset / (1024 * 1024)) / transcurrido if transcurrido > 0 else 0
+            restante_mb = (tamanio_total - offset) / (1024 * 1024)
+            eta_min = (restante_mb / vel / 60) if vel > 0 else 0
+            print(f"     {offset/(1024*1024):>9,.0f} / {total_mb:,.0f} MB  "
+                  f"({pct:5.1f}%)  {vel:5.1f} MB/s  ETA {eta_min:,.0f} min",
+                  flush=True)
+
+        except Exception as e:
+            msg = str(e)
+            if 'ExpiredToken' in msg or 'expired' in msg.lower() \
+               or 'InvalidAccessKeyId' in msg or 'SignatureDoesNotMatch' in msg:
+                print(f"\n  ⚠️  Token vencido a mitad de la descarga")
+                print(f"     Progreso GUARDADO: {offset/(1024*1024):,.1f} MB "
+                      f"({offset*100/tamanio_total:.1f}%)")
+                print(f"     Se retoma desde ahi, no desde cero.")
+                if not solicitar_renovacion_token():
+                    raise Exception("No se pudo renovar el token AWS")
+                boto3_session = crear_session_boto3_fresca()
+                s3_client = boto3_session.client('s3', region_name=ATHENA_REGION)
+                t_ultimo_refresh = time.time()
+                # el while vuelve a intentar el MISMO chunk desde el offset actual
+                offset = os.path.getsize(archivo_parcial)
+                continue
+            else:
+                raise
+
+    # --- Cerrar: renombrar .parte al nombre final ---
+    if os.path.exists(archivo_local):
+        os.remove(archivo_local)
+    os.rename(archivo_parcial, archivo_local)
+
+    tamanio_mb = os.path.getsize(archivo_local) / (1024 * 1024)
+    total_min = (time.time() - t_inicio) / 60
+    print(f"  ✅ Descargado: {archivo_local} ({tamanio_mb:,.1f} MB en {total_min:,.1f} min)")
+
+    return archivo_local
+
+
 def descargar_desde_s3(s3_path, archivo_local, boto3_session=None):
     """
-    Descarga un archivo desde S3 a disco local
-    
+    [LEGACY] Descarga un archivo desde S3 en una sola operacion.
+
+    NO USAR para los CSV de No_Entendidos: si el token vence a mitad, el
+    reintento arranca de cero. Usar descargar_desde_s3_reanudable().
+
+    Se conserva por si hace falta bajar algo chico.
+
     Args:
         s3_path: Ruta S3 completa (s3://bucket/path/file.csv)
         archivo_local: Ruta local donde guardar el archivo
@@ -374,11 +562,27 @@ def ejecutar_y_descargar(query_file, fecha_inicio, fecha_fin, output_file):
     print(f"☁️  Ejecutando en Athena...")
     result_location = ejecutar_query_athena_con_reintentos(query_sql, max_intentos=3)
     
-    # 4. Descargar resultado (con reintentos si falla)
+    # 4. Descargar resultado
     print(f"💾 Descargando resultado...")
+
+    # --- Camino NUEVO: descarga reanudable por rangos de bytes ---
+    # Maneja internamente el vencimiento del token y retoma desde donde quedo,
+    # asi que no necesita el loop de reintentos de abajo.
+    if USAR_DESCARGA_REANUDABLE:
+        descargar_desde_s3_reanudable(
+            result_location,
+            output_file,
+            boto3_session=crear_session_boto3_fresca(),
+            chunk_mb=DESCARGA_CHUNK_MB,
+            minutos_refresh=DESCARGA_MINUTOS_REFRESH,
+        )
+        print(f"✅ Completado: {output_file}\n")
+        return output_file
+
+    # --- Camino ORIGINAL (USAR_DESCARGA_REANUDABLE = False) ---
     max_intentos_descarga = 3
     session_descarga = boto3.Session(region_name=ATHENA_REGION)
-    
+
     for intento in range(1, max_intentos_descarga + 1):
         try:
             descargar_desde_s3(result_location, output_file, boto3_session=session_descarga)

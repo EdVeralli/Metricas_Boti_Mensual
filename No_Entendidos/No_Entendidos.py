@@ -433,17 +433,41 @@ def calcular_promedios_boti(fecha_inicio, fecha_fin):
         )
         
         num_duplicados = mask_duplicados.sum()
-        
+
+        # ─── OPT MEMORIA (oct-2026) ──────────────────────────────────────────
+        # Antes aca se hacia:
+        #     mm1 = mm1[~mask_duplicados].copy()
+        #     mm1.drop(['msg_from_next', 'session_id_next'], ...)
+        #
+        # Dos problemas, los dos de memoria:
+        #
+        # 1) El .copy() estaba de mas. En pandas el indexado booleano
+        #    mm1[~mask] YA devuelve un DataFrame nuevo. El .copy() hacia una
+        #    SEGUNDA copia completa, duplicando el pico al pedo.
+        #
+        # 2) Las columnas auxiliares se dropeaban DESPUES de filtrar, asi que
+        #    se copiaban al cohete. Son 2 columnas object sobre ~24M filas.
+        #
+        # Con 24M filas eso reventaba con:
+        #   numpy._core._exceptions._ArrayMemoryError: Unable to allocate
+        #   1.96 GiB for an array with shape (11, 23949353)
+        #
+        # Ahora: dropear auxiliares PRIMERO, filtrar sin .copy(), y liberar
+        # la mascara enseguida.
+        # ─────────────────────────────────────────────────────────────────────
+
+        # Las auxiliares ya cumplieron: la mascara esta calculada.
+        mm1.drop(['msg_from_next', 'session_id_next'], axis=1, inplace=True, errors='ignore')
+
         if num_duplicados > 0:
-            mm1 = mm1[~mask_duplicados].copy()
+            mm1 = mm1[~mask_duplicados]   # sin .copy(): ya devuelve uno nuevo
             imprimir_progreso(f"✓ Eliminados: {num_duplicados:,} mensajes consecutivos")
         else:
             imprimir_progreso("✓ No hay mensajes consecutivos para eliminar")
-        
-        # Limpiar columnas auxiliares
-        mm1.drop(['msg_from_next', 'session_id_next'], axis=1, inplace=True, errors='ignore')
+
+        del mask_duplicados
         mm1.reset_index(inplace=True, drop=True)
-        
+
         liberar_memoria()
         
         # =================================================================

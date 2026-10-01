@@ -250,9 +250,9 @@ python athena_connector.py
 ```
 ✅ TODAS LAS QUERIES EJECUTADAS EXITOSAMENTE
 📂 Archivos generados:
-   ├─ temp/mensajes_temp.csv      (13 GB)
-   ├─ temp/clicks_temp.csv         (9 GB)
-   └─ temp/botones_temp.csv        (3 GB)
+   ├─ temp/mensajes_temp.csv      (~16 GB — medido en sep-2026)
+   ├─ temp/clicks_temp.csv         (~9 GB)
+   └─ temp/botones_temp.csv        (~1 GB — medido en sep-2026)
 ```
 
 **Duración:** 10-20 minutos
@@ -535,10 +535,109 @@ D13 = % Nada + % NE
    - Instrucciones claras para renovación manual
    - Recarga de credenciales sin reiniciar
 
-4. **Descarga de Resultados**
-   - Descarga directa desde S3
+4. **Descarga de Resultados — REANUDABLE** *(desde oct-2026)*
+   - Descarga por **rangos de bytes**, no en una sola operación
+   - Si vence el token, **retoma desde donde quedó**
    - Archivos guardados en `temp/`
-   - Muestra tamaño de archivos descargados
+   - Progreso en vivo con velocidad y ETA
+
+   Ver [Descarga reanudable](#descarga-reanudable-de-los-csv) abajo.
+
+---
+
+### Descarga reanudable de los CSV
+
+#### El problema
+
+El token de `aws-azure-login` dura **1 hora fija** — el rol
+`PIBADataScientist` no permite más, y no es algo que se pueda cambiar del lado
+nuestro.
+
+Los CSV pesan mucho más de lo que entra en esa ventana. Medición real de
+**septiembre 2026**, a ~3,8 MB/s:
+
+| Archivo | Tamaño | Tiempo de descarga |
+|---|---:|---:|
+| `mensajes_temp.csv` | **16.258 MB** | ~71 min |
+| `clicks_temp.csv` | *(variable)* | — |
+| `botones_temp.csv` | 1.129 MB | 4,5 min |
+
+Solo Mensajes tarda más que la vida completa del token.
+
+La versión original usaba `s3_client.download_file()`, que es **una sola
+operación larga**. Si el token vencía a mitad, fallaba — y el reintento
+**arrancaba de cero**. Resultado: un loop infinito, nunca llegaba a terminar.
+
+#### La solución
+
+`descargar_desde_s3_reanudable()` baja el archivo en pedazos de 256 MB usando
+`get_object(Range=...)` y los va escribiendo a `<archivo>.parte` en modo
+append.
+
+- **Si vence el token**, pide renovación y sigue desde el offset actual.
+- **Si cortás el script**, al re-ejecutarlo detecta el `.parte` y retoma.
+- **Renueva preventivamente** cada 25 minutos, para no chocar el vencimiento.
+- **Recién al terminar** renombra `.parte` al nombre final, así un archivo
+  incompleto nunca se confunde con uno completo.
+
+Así se ve cuando entra en acción:
+
+```
+     12,032 / 16,258 MB  ( 74.0%)    3.8 MB/s  ETA 19 min
+
+  ⚠️  Token vencido a mitad de la descarga
+     Progreso GUARDADO: 12,032.0 MB (74.0%)
+     Se retoma desde ahi, no desde cero.
+```
+
+Renovás en otra terminal, ENTER, y continúa desde el 74%.
+
+#### Configuración
+
+En la cabecera de `athena_connector.py`:
+
+```python
+USAR_DESCARGA_REANUDABLE = True   # False = comportamiento original
+DESCARGA_CHUNK_MB = 256           # tamaño de cada pedazo
+DESCARGA_MINUTOS_REFRESH = 25     # renovación preventiva
+```
+
+> **`DESCARGA_MINUTOS_REFRESH` arranca a contar cuando empieza la descarga, no
+> cuando se emitió el token.** Para cuando la descarga arranca, el token ya
+> viene usado (login + prompt de revalidación + los minutos de la query en
+> Athena). Por eso está en 25 y no en 45: en la corrida de septiembre, con 45
+> el preventivo no llegaba a dispararse — el token vencía antes, a los ~40 min
+> de descarga.
+
+#### Volver atrás
+
+Dos niveles:
+
+```powershell
+# 1. Interruptor: poner USAR_DESCARGA_REANUDABLE = False en athena_connector.py
+#    Vuelve al comportamiento original sin tocar nada más.
+
+# 2. Backup completo
+Copy-Item athena_connector_OPERATIVO_backup.py athena_connector.py -Force
+```
+
+#### Forzar una descarga limpia
+
+Si alguna vez sospechás que un `.parte` quedó corrupto:
+
+```powershell
+Remove-Item temp\*.parte
+```
+
+#### Pendiente de fondo
+
+Esto resuelve el síntoma, no la causa: **seguimos bajando ~25 GB por mes** para
+después agregarlos en Python. Las queries traen filas crudas con el texto
+completo de cada mensaje.
+
+Si en algún momento se puede empujar la agregación a Athena —que calcule
+OneShots, Clicks, Texto, Abandonos, Nada y NE del lado del servidor— la
+descarga pasaría de 25 GB a unos pocos MB y todo este problema desaparece.
 
 #### Parámetros Configurables
 

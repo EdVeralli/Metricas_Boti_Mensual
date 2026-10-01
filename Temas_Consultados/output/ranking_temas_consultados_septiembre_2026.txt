@@ -1,0 +1,10 @@
+1-Infracciones y Multas
+2-Trámites y Reclamos
+3-Salud (Médicos/Salud)
+4-Turnos (Generales)
+5-Movilidad + Estacionamiento
+6-Licencia de Conducir
+7-Impuestos (AGIP / Patentes / ABL)
+8-MIBA y Validación
+9-Educación (Inscripciones/Becas)
+10-Interacción Humana (Chatear)
