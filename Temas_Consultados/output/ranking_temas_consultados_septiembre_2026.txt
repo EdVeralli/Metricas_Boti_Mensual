@@ -1,10 +1,11 @@
-1-Infracciones y Multas
-2-Trámites y Reclamos
-3-Salud (Médicos/Salud)
-4-Turnos (Generales)
-5-Movilidad + Estacionamiento
-6-Licencia de Conducir
-7-Impuestos (AGIP / Patentes / ABL)
-8-MIBA y Validación
-9-Educación (Inscripciones/Becas)
-10-Interacción Humana (Chatear)
+Q de mensajes
+1-Infracciones y Multas: (169.362)
+2-Trámites y Reclamos: (122.697)
+3-Salud (Médicos/Salud): (109.106)
+4-Turnos (Generales): (99.706)
+5-Movilidad + Estacionamiento: (80.186)
+6-Licencia de Conducir: (64.435)
+7-Impuestos (AGIP / Patentes / ABL): (42.316)
+8-MIBA y Validación: (31.977)
+9-Educación (Inscripciones/Becas): (28.748)
+10-Interacción Humana (Chatear): (26.913)

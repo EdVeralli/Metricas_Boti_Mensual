@@ -72,22 +72,51 @@ Solo soporta el modo **MES + AÑO** (el análisis es de meses completos).
 
 El archivo **`output/ranking_temas_consultados_<mes>_<año>.txt`** contiene el
 texto formateado exactamente como va en la celda **"Temas más consultados"**
-del tablero:
+del tablero.
+
+### ⚠️ La unidad es MENSAJES, no sesiones
+
+El número de cada tema es la **cantidad de mensajes de usuario** clasificados
+en esa categoría (una fila del dataset = un mensaje).
+
+En el tablero esta celda queda al lado de **"Contenidos más consultados"**, que
+cuenta **SESIONES** y sale de otro módulo
+(`Contenidos_mas_disparados`, vista `boti_vw_buscador_rulename`).
+
+| Celda del tablero | Unidad | Módulo |
+|---|---|---|
+| Contenidos más consultados (D11) | **Sesiones** | `Contenidos_mas_disparados` |
+| Temas más consultados | **Mensajes** | `Temas_Consultados` (este) |
+
+**Los dos rankings no son comparables ni sumables.** Un tema puede tener muchos
+mensajes y pocas sesiones, o al revés. Por eso el ranking lleva el encabezado
+`Q de mensajes` — está en la constante `ENCABEZADO_UNIDAD_RANKING`.
+
+### Formato de salida
 
 ```
-1-Infracciones y Multas
-2-Trámites y Reclamos
-3-Turnos (Generales)
-4-Salud (Médicos/Salud)
-5-Licencia de Conducir
-6-Movilidad + Estacionamiento
-7-MIBA y Validación
-8-Impuestos (AGIP / Patentes / ABL)
-9-Educación (Inscripciones/Becas)
-10-Telepase
+Q de mensajes
+1-Infracciones y Multas: (284.531)
+2-Trámites y Reclamos: (198.472)
+3-Salud (Médicos/Salud): (156.203)
+4-Turnos (Generales): (143.887)
+5-Movilidad + Estacionamiento: (121.044)
+6-Licencia de Conducir: (98.765)
+7-Impuestos (AGIP / Patentes / ABL): (87.412)
+8-MIBA y Validación: (74.190)
+9-Educación (Inscripciones/Becas): (61.038)
+10-Interacción Humana (Chatear): (45.627)
 ```
 
 Copialo de ahí y pegalo en el tablero.
+
+> **Los números se agregaron en octubre 2026**, a pedido de la Dirección. Antes
+> el ranking salía solo con los nombres de las categorías.
+>
+> `construir_ranking_texto()` acepta el conteo como argumento **opcional**: si
+> no se lo pasás, devuelve el formato viejo sin números. Por eso
+> `Temas_Consultados_Anual.py`, que importa esa función y la llama con un solo
+> argumento, sigue funcionando igual que antes.
 
 ## Curado del ranking
 

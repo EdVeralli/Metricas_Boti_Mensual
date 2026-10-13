@@ -200,6 +200,14 @@ CATEGORIAS_EXCLUIR_DEL_RANKING = [
 ]
 TOP_N_RANKING = 10
 
+# Encabezado que se antepone al ranking del tablero cuando lleva numeros.
+#
+# Es necesario porque en el tablero esta celda queda al lado de "Contenidos
+# mas consultados", que cuenta SESIONES. Esta cuenta MENSAJES DE USUARIO.
+# Sin la aclaracion los dos rankings parecen la misma magnitud y no lo son:
+# un tema puede tener muchos mensajes y pocas sesiones, o al reves.
+ENCABEZADO_UNIDAD_RANKING = "Q de mensajes"
+
 # ============================================================================
 # LIMPIEZA DE TEXTO
 # ============================================================================
@@ -430,7 +438,24 @@ def calcular_comparison(df, mes_ant_str, ultimo_mes_str):
     return df_cmp
 
 def calcular_conteo_categorias(df, mes_ant_period, ultimo_mes_period):
-    """Conteo por categoria y mes. Devuelve (conteo_largo, pivot_resultado)."""
+    """
+    Conteo por categoria y mes.
+
+    Devuelve (conteo_largo, pivot_resultado, conteo_exacto):
+      - conteo_largo   : DataFrame mes_str/categoria/Q (sin formatear)
+      - pivot_resultado: DataFrame formateado que va al Excel 'Comparativo'
+                         (Q en notacion "123.4K")
+      - conteo_exacto  : dict {categoria: int} con el conteo CRUDO del ultimo
+                         mes. Se agrego para poder poner el numero exacto en
+                         el ranking del tablero sin tocar el Excel, que usa el
+                         formato abreviado.
+
+    OJO: lo que se cuenta son MENSAJES DE USUARIO (una fila de df = un
+    mensaje). No son sesiones. La celda "Contenidos mas consultados" del
+    tablero cuenta SESIONES y sale de otra fuente
+    (Contenidos_mas_disparados / boti_vw_buscador_rulename), asi que los dos
+    rankings NO son comparables ni sumables.
+    """
     df_mes = df[df['mes'].isin([mes_ant_period, ultimo_mes_period])].copy()
     df_mes['mes_str'] = df_mes['mes'].astype(str)
     conteo = df_mes.groupby(['mes_str', 'categoria']).size().reset_index(name='Q')
@@ -460,7 +485,16 @@ def calcular_conteo_categorias(df, mes_ant_period, ultimo_mes_period):
 
     resultado = pivot[['categoria', 'Q Último Mes', 'Var %', 'Q Mes Anterior']].copy()
     resultado.columns = ['Tema Último Mes', 'Q Mensajes', 'Var %', 'Q Mes Ant.']
-    return conteo, resultado
+
+    # Conteo CRUDO del ultimo mes, para el ranking del tablero.
+    # Va aparte para no alterar `resultado`, que se escribe tal cual en la
+    # hoja 'Comparativo' del reporte_mensajes.
+    conteo_exacto = {
+        str(cat): int(q)
+        for cat, q in zip(pivot['categoria'], pivot[ultimo_mes_str])
+    }
+
+    return conteo, resultado, conteo_exacto
 
 def calcular_top_variaciones(df, mes_ant_period, ultimo_mes_period):
     """Top 3 al alza / a la baja por categoria a nivel mensaje."""
@@ -504,12 +538,44 @@ def calcular_top_variaciones(df, mes_ant_period, ultimo_mes_period):
     )
     return df_out
 
-def construir_ranking_texto(resultado_categorias):
-    """Toma el DataFrame `resultado` y arma el texto '1-Cat\\n2-Cat\\n...' del TABLERO."""
+def _fmt_miles(n):
+    """123456 -> '123.456'  (separador de miles con punto, formato local)."""
+    return "{:,}".format(int(n)).replace(",", ".")
+
+
+def construir_ranking_texto(resultado_categorias, conteo_exacto=None):
+    """
+    Arma el texto del ranking que va en la celda 'Temas mas consultados'.
+
+    Con `conteo_exacto` (dict {categoria: int}) agrega el numero a cada linea:
+
+        Q de mensajes
+        1-Infracciones y Multas: (123.456)
+        2-Tramites y Reclamos: (98.765)
+        ...
+
+    Sin `conteo_exacto` mantiene el formato viejo, solo las categorias.
+
+    El encabezado de unidad NO es decorativo: la celda vecina
+    "Contenidos mas consultados" trae SESIONES, y esta trae MENSAJES. Sin la
+    aclaracion los dos rankings parecen medir lo mismo.
+    """
     df_rank = resultado_categorias[
         ~resultado_categorias['Tema Último Mes'].isin(CATEGORIAS_EXCLUIR_DEL_RANKING)
     ].head(TOP_N_RANKING).reset_index(drop=True)
-    lineas = ["{}-{}".format(i + 1, cat) for i, cat in enumerate(df_rank['Tema Último Mes'])]
+
+    lineas = []
+    for i, cat in enumerate(df_rank['Tema Último Mes']):
+        if conteo_exacto and str(cat) in conteo_exacto:
+            lineas.append("{}-{}: ({})".format(
+                i + 1, cat, _fmt_miles(conteo_exacto[str(cat)])
+            ))
+        else:
+            lineas.append("{}-{}".format(i + 1, cat))
+
+    if conteo_exacto:
+        lineas.insert(0, ENCABEZADO_UNIDAD_RANKING)
+
     return '\n'.join(lineas)
 
 def generar_excel_ranking(filepath, ranking_texto, periodo_label):
@@ -659,7 +725,9 @@ def main():
 
     # 11) Conteo y comparativo por categoria
     with step("Conteo por categoria + comparativo"):
-        conteo, resultado = calcular_conteo_categorias(df, mes_ant_period, ultimo_mes_period)
+        conteo, resultado, conteo_exacto = calcular_conteo_categorias(
+            df, mes_ant_period, ultimo_mes_period
+        )
     log("    Conteo por mes/categoria:")
     for _, row in conteo.sort_values(['mes_str', 'categoria']).iterrows():
         log("        {} | {:40s} | {:>10,}".format(row['mes_str'], row['categoria'], int(row['Q'])))
@@ -688,7 +756,7 @@ def main():
 
     # 14) Ranking texto y Excel para el tablero
     with step("Ranking texto + Excel para el TABLERO"):
-        ranking_texto = construir_ranking_texto(resultado)
+        ranking_texto = construir_ranking_texto(resultado, conteo_exacto)
         with open(path_ranking_txt, 'w', encoding='utf-8') as f:
             f.write(ranking_texto)
         # Periodo label estilo template: 'mar-26'
