@@ -1,0 +1,11 @@
+Q de mensajes
+1-Infracciones y Multas: (1.566.757)
+2-Trámites y Reclamos: (1.099.268)
+3-Turnos (Generales): (951.082)
+4-Salud (Médicos/Salud): (925.284)
+5-Movilidad + Estacionamiento: (666.881)
+6-Licencia de Conducir: (666.388)
+7-Impuestos (AGIP / Patentes / ABL): (467.467)
+8-MIBA y Validación: (433.262)
+9-Educación (Inscripciones/Becas): (405.611)
+10-Interacción Humana (Chatear): (295.062)

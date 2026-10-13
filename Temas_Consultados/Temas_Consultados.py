@@ -209,6 +209,48 @@ TOP_N_RANKING = 10
 ENCABEZADO_UNIDAD_RANKING = "Q de mensajes"
 
 # ============================================================================
+# VARIANTE "SIN AYUDA"
+# ============================================================================
+# Medicion sobre ago+sep 2026 (56.868 mensajes en 'Interaccion Humana'):
+#
+#   Pedido de humano real (chatear/operador/asesor/147/108...)  40.384  71.0%
+#   Entra solo por la palabra "ayuda", sin señal de humano      16.026  28.2%
+#   Cierre de chat ("cerrar chat") - intencion OPUESTA             402   0.7%
+#
+# El falso positivo mas grande es "ayudas tramitar certificado" (3.960): ahi
+# "ayudas" son SUBSIDIOS, no asistencia humana. "ayuda" a secas (3.365) es
+# genuinamente ambiguo.
+#
+# Como `clasificar()` hace `if palabra in t`, sacar "ayuda" tambien saca
+# ayudas / ayudame / ayudando / ayudaste / etc.
+#
+# IMPACTO: sin "ayuda", 'Interaccion Humana' cae del puesto 10 al 11 y entra
+# 'DNI y Partidas'. Por eso NO se aplica por defecto: rompe la comparabilidad
+# con los meses ya entregados. Se activa a pedido.
+PALABRAS_AMBIGUAS = {
+    "Interacción Humana (Chatear)": ["ayuda"],
+}
+
+
+def aplicar_variante_sin_ambiguas():
+    """
+    Saca las palabras clave ambiguas de CATEGORIAS (hoy: "ayuda" de
+    'Interaccion Humana'). Hay que llamarla ANTES de procesar_df(), porque
+    clasificar() lee el diccionario global.
+
+    Devuelve un dict {categoria: [palabras sacadas]} para poder loguearlo.
+    """
+    sacadas = {}
+    for cat, palabras in PALABRAS_AMBIGUAS.items():
+        if cat not in CATEGORIAS:
+            continue
+        quitadas = [p for p in palabras if p in CATEGORIAS[cat]]
+        if quitadas:
+            CATEGORIAS[cat] = [p for p in CATEGORIAS[cat] if p not in palabras]
+            sacadas[cat] = quitadas
+    return sacadas
+
+# ============================================================================
 # LIMPIEZA DE TEXTO
 # ============================================================================
 
