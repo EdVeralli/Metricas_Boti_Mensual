@@ -20,7 +20,7 @@ Genera:
 import os
 import sys
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 
 # Reutilizo todo lo posible del script mensual
 from Temas_Consultados import (
@@ -51,6 +51,25 @@ def main():
     # version estandar: asi se pueden comparar las dos.
     sin_ayuda = '--sin-ayuda' in sys.argv
 
+    # ── Fecha de corte ───────────────────────────────────────────────────────
+    # Uso:  python Temas_Consultados_Anual.py --hasta 2026-10-14
+    #
+    # Sin el flag usa date.today(), que es practico pero NO es reproducible:
+    # correr el mismo reporte dos dias distintos da numeros distintos, y
+    # despues no se puede explicar la diferencia.
+    #
+    # Con --hasta la corrida queda clavada a una fecha y se puede repetir
+    # cuantas veces haga falta dando siempre lo mismo.
+    fecha_corte = None
+    if '--hasta' in sys.argv:
+        try:
+            valor = sys.argv[sys.argv.index('--hasta') + 1]
+            fecha_corte = datetime.strptime(valor, '%Y-%m-%d').date()
+        except (IndexError, ValueError):
+            log("[ERROR] --hasta necesita una fecha valida en formato YYYY-MM-DD")
+            log("        Ejemplo: python Temas_Consultados_Anual.py --hasta 2026-10-14")
+            return
+
     log("=" * 60)
     log("TEMAS CONSULTADOS - RANKING ANUAL (YTD)")
     if sin_ayuda:
@@ -65,12 +84,17 @@ def main():
         log("           estandar ya entregadas (ene-sep 2026).")
         log("")
 
-    # 1) Rango: 1 de enero del año en curso -> hoy
-    hoy = date.today()
+    # 1) Rango: 1 de enero del año -> fecha de corte (hoy, o la de --hasta)
+    hoy = fecha_corte if fecha_corte else date.today()
     anio = hoy.year
     fecha_inicio = "{:04d}-01-01".format(anio)
     fecha_fin = hoy.strftime("%Y-%m-%d")
     log("Periodo: {} a {}".format(fecha_inicio, fecha_fin))
+    if fecha_corte:
+        log("         (fecha de corte fijada con --hasta; corrida reproducible)")
+    else:
+        log("         (sin --hasta: usa la fecha de HOY, la corrida NO es")
+        log("          reproducible — manana daria otros numeros)")
 
     # 2) Credenciales AWS
     log("")
@@ -155,7 +179,12 @@ def main():
         ranking_texto = construir_ranking_texto(resultado, conteo_exacto)
         with open(path_ranking_txt, 'w', encoding='utf-8') as f:
             f.write(ranking_texto)
-        periodo_short = "YTD-{}".format(str(anio)[-2:])
+        # El label lleva la fecha de corte para que el Excel se auto-documente:
+        # los archivos se sobreescriben con cada corrida, asi que sin esto no
+        # hay forma de saber hasta que dia llega el dato.
+        periodo_short = "YTD-{} (al {})".format(
+            str(anio)[-2:], hoy.strftime("%d/%m")
+        )
         generar_excel_ranking(path_ranking_xlsx, ranking_texto, periodo_short)
     log("    [OK] {}".format(path_ranking_txt))
     log("    [OK] {}".format(path_ranking_xlsx))

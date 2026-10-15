@@ -78,3 +78,7 @@ backup/
 # ============================================================================
 
 Temas_Consultados/output/temas_consultados_*.csv
+
+# Archivos temporales de Office (se crean al abrir un xlsx)
+~$*
+*.tmp
