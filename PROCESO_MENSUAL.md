@@ -417,6 +417,225 @@ Cruce entre repos:
   El script ahora tiene logging verbose con timestamps. Si tarda >10 min sin
   imprimir nada, hay problema real.
 
+---
+
+### 9.4.b. `boti_message_metrics_2` — tres cosas que hay que saber
+
+Verificado en octubre 2026 a raíz de una consulta del equipo de Boti. Estas
+tres cosas no son evidentes y cada una puede hacer que alguien concluya que
+los informes están mal cuando no lo están.
+
+#### 1. La tabla cambió el 1° de MAYO de 2024, no en 2025
+
+Hubo una migración de `boti_message_metrics` a `boti_message_metrics_2`.
+
+**Fecha exacta del corte**, con la misma query sobre el mismo rango
+(28/04 a 03/05 de 2024) cambiando solo la tabla:
+
+| día | `boti_message_metrics` (vieja) | `boti_message_metrics_2` (nueva) |
+|---|---:|---:|
+| 2024-04-28 | 930.174 | — |
+| 2024-04-29 | 2.675.755 | — |
+| **2024-04-30** | **2.118.630** | — |
+| **2024-05-01** | — | **1.177.241** |
+| 2024-05-02 | — | 2.267.295 |
+| 2024-05-03 | — | 2.022.670 |
+
+Cada tabla devolvió solo su mitad del rango: **sin solapamiento ni huecos**.
+(El 01/05 arranca más bajo porque es feriado, igual que el domingo 28 del
+lado viejo — es el mismo flujo de datos, cambió el destino.)
+
+Conteo mes a mes, para ver el panorama completo:
+
+| mes | `boti_message_metrics_2` | `boti_message_metrics` |
+|---|---:|---:|
+| 2024-01 a 2024-04 | **0** | 56-64 M / mes |
+| **2024-05** | **59.107.459** | **0** ← corte |
+| 2024-06 a 2024-12 | 50-69 M / mes | 0 |
+| 2025-01 a 2025-12 | 60-81 M / mes | **0** (los 12 meses) |
+
+**Corte limpio, sin meses duplicados.** Los volúmenes son equivalentes a
+ambos lados (abril 59,4 M en la vieja, mayo 59,1 M en la nueva): fue un
+cambio de tabla, no de lo que se captura.
+
+Qué significa en la práctica:
+
+- **2025 y 2026 están enteros en `_2`.** Todos los informes entregados usan
+  la tabla correcta y están completos.
+- **2024 está partido** entre las dos tablas. Ver la receta abajo.
+- **Anterior a 2024-01** no se verificó. Si lo piden, repetir el conteo.
+
+---
+
+### 🔧 RECETA: qué hacer cuando pidan 2024 (o cualquier año anterior)
+
+> Esta sección existe porque el dato se olvida. Si llegaste acá porque alguien
+> pidió métricas de 2024, seguí estos pasos.
+
+**El problema en una línea:** 2024 está partido. Enero-abril en
+`boti_message_metrics`, mayo-diciembre en `boti_message_metrics_2`. Correr
+`Temas_Consultados_Anual.py --hasta 2024-12-31` tal como está hoy devolvería
+**solo 8 meses** y nadie se daría cuenta, porque el script no falla.
+
+#### Paso 1 — Verificar que la tabla vieja siga existiendo
+
+Las tablas deprecadas a veces se borran. Confirmar primero:
+
+```sql
+SELECT COUNT(*) FROM "caba-piba-consume-zone-db"."boti_message_metrics"
+WHERE CAST(session_creation_time AS DATE)
+      BETWEEN date '2024-01-01' AND date '2024-04-30'
+```
+
+Si da error de tabla inexistente, **2024 no se puede reconstruir** y hay que
+avisarlo antes de prometer nada.
+
+#### Paso 2 — Verificar que tenga las mismas columnas
+
+No darlo por sentado. La query de Temas necesita: `session_id`,
+`creation_time`, `id`, `message`, `msg_from`, `message_type`,
+`session_creation_time` y `COMPREHENSION_TYPE`.
+
+```sql
+SHOW COLUMNS IN "caba-piba-consume-zone-db"."boti_message_metrics"
+```
+
+Si falta alguna o cambió de nombre, hay que adaptar el `SELECT` de ese lado
+del `UNION`.
+
+#### Paso 3 — Modificar `build_query()` en `Temas_Consultados.py`
+
+Partir la consulta en dos, acotando cada tabla a su rango:
+
+```sql
+SELECT DISTINCT session_id, DATE(creation_time) AS creation_time, id, message
+FROM "caba-piba-consume-zone-db"."boti_message_metrics"
+WHERE CAST(session_creation_time AS DATE)
+      BETWEEN date '<inicio>' AND date '2024-04-30'
+  AND msg_from = 'user'
+  AND message IS NOT NULL
+  AND message_type = 'Text'
+  AND LENGTH(message) > 2
+  AND COMPREHENSION_TYPE != 'Answer to question'
+
+UNION ALL
+
+SELECT DISTINCT session_id, DATE(creation_time) AS creation_time, id, message
+FROM "caba-piba-consume-zone-db"."boti_message_metrics_2"
+WHERE CAST(session_creation_time AS DATE)
+      BETWEEN date '2024-05-01' AND date '<fin>'
+  AND msg_from = 'user'
+  AND message IS NOT NULL
+  AND message_type = 'Text'
+  AND LENGTH(message) > 2
+  AND COMPREHENSION_TYPE != 'Answer to question'
+```
+
+**El `DISTINCT` va en cada rama**, no al final: cada tabla trae ~8 filas por
+mensaje (ver punto 2 de esta sección). `UNION ALL` no deduplica, y está bien
+así — las dos ramas cubren rangos de fecha disjuntos, no puede haber
+solapamiento.
+
+#### Paso 4 — Verificar que no falte ningún mes
+
+Después de correr, contar mensajes por mes en el CSV de salida. Tienen que
+aparecer **los 12 meses** con volúmenes parecidos (~1 M cada uno para 2024).
+Si enero-abril vienen en cero, el `UNION` no quedó bien.
+
+```python
+import pandas as pd, collections
+cnt = collections.Counter()
+for chunk in pd.read_csv('output/temas_consultados_anual_2024.csv', sep=';',
+                         encoding='utf-8-sig', usecols=['creation_time'],
+                         chunksize=500_000, low_memory=False):
+    cnt.update(chunk['creation_time'].astype(str).str[:7])
+for m in sorted(cnt):
+    print(m, f"{cnt[m]:,}")
+```
+
+#### Paso 5 — Aclarar el criterio al entregar
+
+Si el pedido es comparar 2024 contra 2025/2026, avisar que 2024 se
+reconstruyó uniendo dos tablas. Es información relevante para quien lea el
+reporte, aunque el corte haya sido limpio.
+
+#### 2. La tabla tiene ~8 filas por mensaje
+
+Medido sobre septiembre 2026, filtrando `msg_from='user'` y
+`message_type='Text'`:
+
+```
+filas      : 37.324.756
+ids unicos :  4.479.516
+             ─────────
+ratio      : 8,3x
+```
+
+**Toda query sobre esta tabla necesita `SELECT DISTINCT` o
+`COUNT(DISTINCT id)`.** Sin eso se sobrecuenta por ~8.
+
+Es la trampa más peligrosa de las tres: si alguien arma una query propia para
+contrastar los números del informe, le va a dar 8 veces más y va a concluir
+que el informe está mal. Las queries del repo ya usan `DISTINCT`.
+
+#### 3. El filtro de comprensión descarta los NULL sin querer
+
+Las queries del repo traen esta línea:
+
+```sql
+AND COMPREHENSION_TYPE != 'Answer to question'
+```
+
+En SQL, si el campo viene **NULL** la comparación devuelve NULL —que no es
+TRUE— y la fila **se descarta**. Nadie decidió eso; es un efecto del operador.
+
+Distribución en septiembre 2026 (user + Text):
+
+| COMPREHENSION_TYPE | q |
+|---|---:|
+| Understood | 20.521.477 |
+| Answer to question | 12.450.656 ← exclusión deliberada |
+| Not understood | 2.801.973 |
+| Core intent: MASTER_BOT_MAIN_INTENT | 901.059 |
+| **(NULL)** | **645.394** ← se cae solo |
+| resto de Core intent | 4.197 |
+
+Se pierde el **2,6%** de lo que debería entrar.
+
+**No está corregido a propósito.** El filtro viene así desde siempre y afecta
+a todos los períodos por igual, así que las series históricas son
+consistentes entre sí. Corregirlo rompería la comparabilidad con todo lo ya
+entregado. Si alguna vez se rehace la serie completa, la corrección es:
+
+```sql
+AND (COMPREHENSION_TYPE IS NULL OR COMPREHENSION_TYPE != 'Answer to question')
+```
+
+#### Query para re-verificar el corte de tabla
+
+```sql
+SELECT  mes,
+        SUM(CASE WHEN origen = 'nueva_2' THEN q ELSE 0 END) AS boti_message_metrics_2,
+        SUM(CASE WHEN origen = 'vieja'   THEN q ELSE 0 END) AS boti_message_metrics
+FROM (
+    SELECT date_format(CAST(session_creation_time AS DATE), '%Y-%m') AS mes,
+           'nueva_2' AS origen, COUNT(*) AS q
+    FROM "caba-piba-consume-zone-db"."boti_message_metrics_2"
+    WHERE CAST(session_creation_time AS DATE)
+          BETWEEN date '2024-01-01' AND date '2024-12-31'
+    GROUP BY 1
+    UNION ALL
+    SELECT date_format(CAST(session_creation_time AS DATE), '%Y-%m') AS mes,
+           'vieja' AS origen, COUNT(*) AS q
+    FROM "caba-piba-consume-zone-db"."boti_message_metrics"
+    WHERE CAST(session_creation_time AS DATE)
+          BETWEEN date '2024-01-01' AND date '2024-12-31'
+    GROUP BY 1
+)
+GROUP BY mes
+ORDER BY mes
+```
+
 ### 9.5. Contenidos del Bot
 
 - **`Falta 1 TSV`** → Faltan los 2 TSV exportados de Botmaker. Exportar del
@@ -561,7 +780,27 @@ Estructura del template Excel (columna B = Indicador, columna C = Valor):
 
 **2026-09-11** (generado originalmente el 2026-07-05).
 
-Cambios de esta revisión:
+### Revisión 2026-10-15
+
+- **Nueva sección 9.4.b** sobre `boti_message_metrics_2`, a raíz de una
+  consulta del equipo de Boti sobre si habíamos usado la tabla correcta:
+  - La migración `boti_message_metrics` → `_2` fue en **mayo 2024**, no en
+    2025. **2025 y 2026 están enteros en `_2`**, los informes entregados están
+    completos. 2024 queda partido entre las dos tablas.
+  - La tabla tiene **~8 filas por mensaje** (37.324.756 filas / 4.479.516 ids
+    únicos en sep-2026). Toda query necesita `DISTINCT` o sobrecuenta por 8.
+  - El filtro `COMPREHENSION_TYPE != 'Answer to question'` **descarta los NULL
+    sin querer** (2,6% de los mensajes). No se corrigió para no romper la
+    comparabilidad del histórico.
+- **Receta operativa "qué hacer cuando pidan 2024"** dentro de la 9.4.b: los
+  5 pasos para reconstruir un año partido entre las dos tablas. El riesgo que
+  cubre es que `--hasta 2024-12-31` devuelve **solo 8 meses sin fallar**.
+- Lo mismo, resumido, en `Temas_Consultados/README.md` y un aviso en el
+  `README.md` del repo, que es por donde entra cualquiera.
+
+### Revisión anterior
+
+Cambios de esa revisión:
 
 - Nueva sección **5.1** con los outputs que no van al consolidado y hay que
   buscar a mano (ranking de temas para el tablero, BAX sesiones, LINDA,

@@ -29,6 +29,78 @@ Temas_Consultados/
 └── README.md                # Este archivo
 ```
 
+## ⚠️ La tabla `boti_message_metrics_2` — leer antes de tocar las queries
+
+Verificado en octubre 2026. Tres cosas que no son evidentes y que, si no se
+conocen, llevan a conclusiones equivocadas sobre los informes.
+
+### 1. Tiene ~8 filas por mensaje
+
+Septiembre 2026, filtrando `msg_from='user'` y `message_type='Text'`:
+
+```
+filas      : 37.324.756
+ids unicos :  4.479.516   →  ratio 8,3x
+```
+
+**Toda query necesita `SELECT DISTINCT` o `COUNT(DISTINCT id)`.** Sin eso
+sobrecuenta por 8. La query de este módulo ya lo hace — no se lo saques.
+
+Es la trampa más peligrosa: si alguien arma una query propia para contrastar
+los números del informe, le va a dar 8 veces más y va a pensar que el informe
+está mal.
+
+### 2. El filtro de comprensión se come los NULL
+
+```sql
+AND COMPREHENSION_TYPE != 'Answer to question'
+```
+
+Si el campo viene NULL, `NULL != '...'` da NULL —que no es TRUE— y la fila se
+descarta. En septiembre 2026 eso son **645.394 mensajes, el 2,6%** de lo que
+debería entrar.
+
+**Está así a propósito por ahora**: el filtro viene desde siempre y afecta a
+todos los períodos por igual, así que las series son consistentes entre sí.
+Corregirlo rompería la comparabilidad con todo lo entregado.
+
+Si alguna vez se rehace la serie completa:
+
+```sql
+AND (COMPREHENSION_TYPE IS NULL OR COMPREHENSION_TYPE != 'Answer to question')
+```
+
+### 3. Antes del 1° de mayo de 2024 los datos están en otra tabla
+
+Hubo migración de `boti_message_metrics` a `boti_message_metrics_2`:
+
+| Período | Dónde están los datos |
+|---|---|
+| hasta el **2024-04-30** | `boti_message_metrics` (la vieja) |
+| desde el **2024-05-01** | **`boti_message_metrics_2`** |
+
+Corte exacto al día, sin solapamiento ni huecos: la misma query sobre el rango
+28/04–03/05 devuelve 28, 29 y 30 de abril en la vieja, y 1, 2 y 3 de mayo en
+la nueva.
+
+> 🔧 **Si te piden 2024 (o un año anterior), NO corras el script tal cual.**
+>
+> `Temas_Consultados_Anual.py --hasta 2024-12-31` devolvería **solo 8 meses**
+> (mayo a diciembre) y **no fallaría** — nadie se daría cuenta.
+>
+> Hay que partir la query en dos con `UNION ALL`, una rama por tabla. La
+> receta paso a paso está en [`PROCESO_MENSUAL.md`](../PROCESO_MENSUAL.md),
+> sección 9.4.b, "RECETA: qué hacer cuando pidan 2024". **2025 y 2026 están enteros en `_2`**, así
+que los anuales de esos años están completos.
+
+Para 2024 completo habría que unir las dos tablas con `UNION ALL`. Verificar
+antes que la vieja tenga las mismas columnas.
+
+El detalle con los números mes a mes está en
+[`PROCESO_MENSUAL.md`](../PROCESO_MENSUAL.md), sección 9.4.b.
+
+---
+
 ## Requisitos
 
 ```bash

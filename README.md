@@ -14,6 +14,14 @@ de la Ciudad de Buenos Aires.
 > repos (Web + Boti) está en **[`PROCESO_MENSUAL.md`](PROCESO_MENSUAL.md)** —
 > ese es el runbook maestro y vive idéntico en ambos repos.
 
+> ⚠️ **¿Te pidieron métricas de 2024 o anteriores?**
+> La tabla de mensajes cambió el **1° de mayo de 2024**: antes de esa fecha los
+> datos están en `boti_message_metrics`, después en `boti_message_metrics_2`.
+> Los scripts apuntan solo a la segunda, así que **devolverían datos
+> incompletos sin fallar**.
+> Receta paso a paso en [`PROCESO_MENSUAL.md`](PROCESO_MENSUAL.md), sección
+> 9.4.b.
+
 ---
 
 ## Tabla de Contenidos
